@@ -1,0 +1,40 @@
+//
+// Created by schoo on 2024/10/13.
+//
+#include "schoo/schoo.hpp"
+#include "schoo/shader.hpp"
+#include "schoo/utils.hpp"
+
+const uint32_t width=1600;
+const uint32_t height=1200;
+
+namespace  schoo{
+    void Init(){
+        Window::Init(width,height,"schoo");
+        Context::Init(schoo::Window::GetInstance());
+        Context::GetInstance().InitSwapchain(width,height);
+        Shader::init(ReadWholeFile(R"(..\..\shader\vert.spv)"),
+                     ReadWholeFile(R"(..\..\shader\frag.spv)"));
+        Context::GetInstance().renderProcess->InitLayout();
+        Context::GetInstance().renderProcess->InitRenderPass();
+        Context::GetInstance().swapchain->CreateFramebuffers();
+        Context::GetInstance().renderProcess->InitPipeline();
+        Context::GetInstance().InitCommandManager();
+        Context::GetInstance().InitRenderer();
+    }
+
+    void Quit(){
+        Context::GetInstance().device.waitIdle();
+        Context::GetInstance().DestroyRenderer();
+        Context::GetInstance().DestroyCommandManager();
+        Context::GetInstance().DestroyRenderProcess();
+        Shader::quit();
+        Context::GetInstance().QuitSwapchain();
+        Context::Quit();
+        Window::Quit();
+    }
+
+    void Render(){
+        Context::GetInstance().renderer->Render();
+    }
+}
