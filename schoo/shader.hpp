@@ -6,8 +6,8 @@
 namespace schoo {
     class Shader final {
     public:
-        static void init(const std::string& vertexSource,const std::string& fragSource);
-        static void quit();
+        static void Init(const std::string& vertexSource,const std::string& fragSource);
+        static void Quit();
 
         static Shader& GetInstance();
 

@@ -2,8 +2,16 @@
 #include"schoo/Shader.hpp"
 #include "schoo/vertexData.hpp"
 
+
 namespace schoo {
-    void RenderProcess::InitPipeline() {
+    RenderProcess::RenderProcess() {
+        setLayout = createSetLayout();
+        layout = createLayout();
+        CreateRenderPass();
+        pipeline = nullptr;
+    }
+
+    void RenderProcess::CreatePipeline() {
         vk::GraphicsPipelineCreateInfo createInfo;
 
         //vertex input
@@ -11,7 +19,7 @@ namespace schoo {
         auto attribute = Vertex::getAttributeDescriptions();
         auto binding = Vertex::getBindingDescription();
         inputState.setVertexAttributeDescriptions(attribute)
-        .setVertexBindingDescriptions(binding);
+                .setVertexBindingDescriptions(binding);
 
         createInfo.setPVertexInputState(&inputState);
 
@@ -51,6 +59,8 @@ namespace schoo {
         createInfo.setPMultisampleState(&multisample);
 
         //test
+        vk::PipelineDepthStencilStateCreateInfo depthStencilState;
+        createInfo.setPDepthStencilState(&depthStencilState);
 
 
         //color blending
@@ -78,12 +88,14 @@ namespace schoo {
 
     }
 
-    void RenderProcess::InitLayout() {
+    vk::PipelineLayout RenderProcess::createLayout() {
         vk::PipelineLayoutCreateInfo createInfo;
-        layout = Context::GetInstance().device.createPipelineLayout(createInfo);
+        createInfo.setSetLayouts(setLayout);
+        return Context::GetInstance().device.createPipelineLayout(createInfo);
+
     }
 
-    void RenderProcess::InitRenderPass() {
+    void RenderProcess::CreateRenderPass() {
         vk::RenderPassCreateInfo createInfo;
 
         vk::AttachmentDescription description;
@@ -121,7 +133,20 @@ namespace schoo {
     RenderProcess::~RenderProcess() {
         auto &device = Context::GetInstance().device;
         device.destroyRenderPass(renderPass);
+        device.destroyDescriptorSetLayout(setLayout);
         device.destroyPipelineLayout(layout);
         device.destroyPipeline(pipeline);
     }
+
+    vk::DescriptorSetLayout RenderProcess::createSetLayout() {
+        vk::DescriptorSetLayoutCreateInfo createInfo;
+        vk::DescriptorSetLayoutBinding binding;
+        binding.setBinding(0)
+                .setDescriptorType(vk::DescriptorType::eUniformBuffer)
+                .setStageFlags(vk::ShaderStageFlagBits ::eVertex)
+                .setDescriptorCount(1);
+        createInfo.setBindings(binding);
+        return Context::GetInstance().device.createDescriptorSetLayout(createInfo);
+    }
+
 }

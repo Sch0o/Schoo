@@ -4,7 +4,7 @@
 namespace schoo {
     std::unique_ptr<Shader>Shader::instance_ = nullptr;
 
-    void Shader::init(const std::string& vertexSource, const std::string& fragSource) {
+    void Shader::Init(const std::string& vertexSource, const std::string& fragSource) {
         instance_.reset(new Shader(vertexSource, fragSource));
     }
 
@@ -12,7 +12,7 @@ namespace schoo {
         return *instance_;
     }
 
-    void Shader::quit() {
+    void Shader::Quit() {
         instance_.reset();
     }
 

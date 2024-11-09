@@ -61,6 +61,8 @@ namespace schoo {
 
         void DestroyCommandManager();
 
+        void InitRenderProcess();
+
     private:
         Context(schoo::Window &window);
 
@@ -79,7 +81,7 @@ namespace schoo {
 
         void createSurface(schoo::Window &window);
 
-        void InitRenderProcess();
+
 
     };
 }

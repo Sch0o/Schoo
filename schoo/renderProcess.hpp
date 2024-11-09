@@ -7,11 +7,16 @@ namespace schoo{
         vk::Pipeline pipeline;
         vk::PipelineLayout layout;
         vk::RenderPass renderPass;
+        vk::DescriptorSetLayout setLayout;
 
+        RenderProcess();
         ~RenderProcess();
 
         void InitLayout();
-        void InitRenderPass();
-        void InitPipeline();
+        void CreateRenderPass();
+        void CreatePipeline();
+    private:
+        vk::PipelineLayout createLayout();
+        vk::DescriptorSetLayout createSetLayout();
     };
 }

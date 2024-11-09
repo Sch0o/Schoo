@@ -29,8 +29,6 @@ namespace schoo {
         createDevice();
         //得到渲染队列
         getQueues();
-        //渲染管线
-        InitRenderProcess();
     }
 
     Context::~Context() {

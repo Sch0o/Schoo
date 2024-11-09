@@ -1,6 +1,8 @@
 #pragma once
 #include"vulkan/vulkan.hpp"
 #include"buffer.hpp"
+#include"glm/glm.hpp"
+
 
 namespace schoo {
     class Renderer final {
@@ -19,13 +21,40 @@ namespace schoo {
 
         std::vector<vk::CommandBuffer> cmdBuffers_;
 
-        std::unique_ptr<Buffer>vertexBuffer_;
+        std::unique_ptr<Buffer>hostVertexBuffer_;
+        std::unique_ptr<Buffer>deviceVertexBuffer_;
 
+        std::unique_ptr<Buffer>hostIndexBuffer_;
+        std::unique_ptr<Buffer>deviceIndexBuffer_;
 
+        std::unique_ptr<Buffer>hostUniformBuffer_;
+        std::unique_ptr<Buffer>deviceUniformBuffer_;
+
+        vk::DescriptorPool descriptorPool_;
+        std::vector<vk::DescriptorSet>sets_;
+
+        struct VP{
+            glm::mat4 view=glm::mat4(1.0f);
+            glm::mat4 project=glm::mat4(1.0f);
+        }vp;
+        float fov_=90;
+
+        void initVP();
         void createCmdBuffers();
         void createSemaphores();
         void createFences();
         void createVertexBuffer();
-        void loadVertexDate();
+        void createIndexBuffer();
+        void createUniformBuffer();
+
+        void loadIndexData();
+        void loadVertexData();
+        void loadUniformData();
+
+        void createDescriptorPool();
+        void allocateSets();
+        void updateSets();
+
+        void copyBuffer(vk::Buffer&src,vk::Buffer&dst,size_t size,size_t srcOffset,size_t dstOffset);
     };
 }

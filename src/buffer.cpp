@@ -2,15 +2,17 @@
 #include"schoo/context.hpp"
 
 namespace schoo {
-    Buffer::Buffer(size_t size, vk::BufferUsageFlagBits usage, vk::MemoryPropertyFlags property) {
+    Buffer::Buffer(size_t size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags property) {
         this->size=size;
         createBuffer(size, usage);
         auto info = queryMemoryInfo(property);
+        //std::cout<<"size::"<<info.size<<std::endl;
         allocateMemory(info);
         bindingMemoryToBuffer();
     }
 
     Buffer::~Buffer() {
+        //Context::GetInstance().device.unmapMemory(memory);
         Context::GetInstance().device.freeMemory(memory);
         Context::GetInstance().device.destroyBuffer(buffer);
     }
