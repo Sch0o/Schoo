@@ -64,7 +64,7 @@ namespace schoo {
 
         void createDescriptorPool();
         void allocateSets();
-        void updateSets();
+        void writeSets();
 
         void copyBuffer(vk::Buffer&src,vk::Buffer&dst,size_t size,size_t srcOffset,size_t dstOffset);
     };

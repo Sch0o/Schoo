@@ -10,6 +10,7 @@ namespace schoo {
     struct Vertex {
         glm::vec3 pos;
         glm::vec3 color;
+        glm::vec2 texCoord;
 
         static vk::VertexInputBindingDescription getBindingDescription() {
             vk::VertexInputBindingDescription bindingDescription;
@@ -19,8 +20,8 @@ namespace schoo {
             return bindingDescription;
         }
 
-        static std::array<vk::VertexInputAttributeDescription, 2> getAttributeDescriptions() {
-            std::array<vk::VertexInputAttributeDescription, 2> attributeDescriptions{};
+        static std::array<vk::VertexInputAttributeDescription, 3> getAttributeDescriptions() {
+            std::array<vk::VertexInputAttributeDescription, 3> attributeDescriptions{};
 
             attributeDescriptions[0].setFormat(vk::Format::eR32G32B32Sfloat)
                     .setBinding(0)
@@ -31,15 +32,20 @@ namespace schoo {
                     .setBinding(0)
                     .setLocation(1)
                     .setOffset(offsetof(Vertex, color));
+
+            attributeDescriptions[2].setFormat(vk::Format::eR32G32Sfloat)
+            .setBinding(0)
+            .setLocation(2)
+            .setOffset(offsetof(Vertex,texCoord));
             return attributeDescriptions;
         }
     };
 
     const std::vector<Vertex> rect_vertices = {
-            {{-0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}}, // 0
-            {{0.5f,  -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}},  // 1
-            {{0.5f,  0.5f,  0.0f}, {1.0f, 1.0f, 1.0f}},  // 2
-            {{-0.5f, 0.5f,  0.0f}, {1.0f, 1.0f, 1.0f}}, // 3
+            {{-0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f},{1.0f,0.0f}}, // 0
+            {{0.5f,  -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f},{0.0f,0.0f}},  // 1
+            {{0.5f,  0.5f,  0.0f}, {1.0f, 1.0f, 1.0f},{0.0f,1.0f}},  // 2
+            {{-0.5f, 0.5f,  0.0f}, {1.0f, 1.0f, 1.0f},{1.0f,1.0f}}, // 3
     };
 
     const std::vector<Vertex> cube_vertices = {

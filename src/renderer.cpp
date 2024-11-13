@@ -26,12 +26,12 @@ namespace schoo {
         createIndexBuffer();
         loadIndexData();
 
-        createDescriptorPool();
-        allocateSets();
-        updateSets();
-
         createTextures();
         createSampler();
+
+        createDescriptorPool();
+        allocateSets();
+        writeSets();
 
 
 
@@ -106,7 +106,7 @@ namespace schoo {
                     .setClearValues(clearValue);
 
             cmdBuffers_[currentFrame].beginRenderPass(renderPassBeginInfo, {});
-            cmdBuffers_[currentFrame].drawIndexed(indices.size(), 1, 0, 0,0);
+            cmdBuffers_[currentFrame].drawIndexed(indices.size(), 1, 0, 0, 0);
             cmdBuffers_[currentFrame].endRenderPass();
         }
         cmdBuffers_[currentFrame].end();
@@ -169,6 +169,7 @@ namespace schoo {
                                              vk::MemoryPropertyFlagBits::eDeviceLocal));
 
     }
+
     void Renderer::createIndexBuffer() {
         size_t bufferSize = sizeof(indices[0]) * indices.size();
         //std::cout << "IndexSize:"<<bufferSize<<std::endl;
@@ -197,6 +198,7 @@ namespace schoo {
                                               vk::MemoryPropertyFlagBits::eDeviceLocal));
 
     }
+
     void Renderer::copyBuffer(vk::Buffer &src, vk::Buffer &dst, size_t size, size_t srcOffset, size_t dstOffset) {
         auto cmdBuffer = Context::GetInstance().commandManager->AllocateCmdBuffer();
 
@@ -224,8 +226,9 @@ namespace schoo {
 
         copyBuffer(hostVertexBuffer_->buffer, deviceVertexBuffer_->buffer, hostVertexBuffer_->size, 0, 0);
     }
+
     void Renderer::loadIndexData() {
-        void *data=Context::GetInstance().device.mapMemory(hostIndexBuffer_->memory,0,hostIndexBuffer_->size);
+        void *data = Context::GetInstance().device.mapMemory(hostIndexBuffer_->memory, 0, hostIndexBuffer_->size);
         memcpy(data, indices.data(), hostIndexBuffer_->size);
         Context::GetInstance().device.unmapMemory(hostIndexBuffer_->memory);
 
@@ -242,11 +245,13 @@ namespace schoo {
 
     void Renderer::createDescriptorPool() {
         vk::DescriptorPoolCreateInfo createInfo;
-        vk::DescriptorPoolSize poolSize;
-        poolSize.setType(vk::DescriptorType::eUniformBuffer)
+        std::array<vk::DescriptorPoolSize,2> poolSizes;
+        poolSizes[0].setType(vk::DescriptorType::eUniformBuffer)
+                .setDescriptorCount(frameNums);
+        poolSizes[1].setType(vk::DescriptorType::eUniformBuffer)
                 .setDescriptorCount(frameNums);
         createInfo.setMaxSets(frameNums)
-                .setPoolSizes(poolSize);
+                .setPoolSizes(poolSizes);
         descriptorPool_ = Context::GetInstance().device.createDescriptorPool(createInfo);
     }
 
@@ -260,21 +265,37 @@ namespace schoo {
         sets_ = Context::GetInstance().device.allocateDescriptorSets(allocateInfo);
     }
 
-    void Renderer::updateSets() {
+    void Renderer::writeSets() {
         for (int i = 0; i < frameNums; i++) {
             auto &set = sets_[i];
             vk::DescriptorBufferInfo bufferInfo;
+            vk::DescriptorImageInfo imageInfo;
+            std::array<vk::WriteDescriptorSet,2> writer;
+
+            //mvp
             bufferInfo.setOffset(0)
                     .setBuffer(deviceUniformBuffer_->buffer)
                     .setRange(deviceUniformBuffer_->size);
 
-            vk::WriteDescriptorSet writer;
-            writer.setDescriptorCount(1)
+            writer[0].setDescriptorCount(1)
                     .setDescriptorType(vk::DescriptorType::eUniformBuffer)
                     .setBufferInfo(bufferInfo)
                     .setDstBinding(0)
                     .setDstSet(set)
                     .setDstArrayElement(0);
+
+            //texcoord
+            imageInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal)
+            .setImageView(texture_->view)
+            .setSampler(sampler_);
+
+            writer[1].setDescriptorCount(1)
+                    .setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
+                    .setImageInfo(imageInfo)
+                    .setDstBinding(1)
+                    .setDstSet(set)
+                    .setDstArrayElement(0);
+
 
             Context::GetInstance().device.updateDescriptorSets(writer, {});
         }
@@ -291,34 +312,34 @@ namespace schoo {
         vp.project = glm::perspective(glm::radians(fov_), width / (height * 1.0f), 0.1f, 100.0f);
     }
 
-    void Renderer::createTextures(){
-        const std::string path="../../textures/img.png";
-        if(CheckPath(path)){
+    void Renderer::createTextures() {
+        const std::string path = "../../textures/img.png";
+        if (CheckPath(path)) {
             texture_.reset(new Texture(path));
         }
     }
 
     void Renderer::createSampler() {
-        auto &device=Context::GetInstance().device;
+        auto &device = Context::GetInstance().device;
 
         vk::SamplerCreateInfo createInfo;
         createInfo.setMagFilter(vk::Filter::eLinear)
-        .setMinFilter(vk::Filter::eLinear)
-        .setAddressModeU(vk::SamplerAddressMode::eRepeat)
-        .setAddressModeV(vk::SamplerAddressMode::eRepeat)
-        .setAddressModeW(vk::SamplerAddressMode::eRepeat)
-        .setAnisotropyEnable(vk::False)
-        .setMaxAnisotropy(1)
-        .setBorderColor(vk::BorderColor::eIntOpaqueBlack)
-        .setUnnormalizedCoordinates(vk::False)
-        .setCompareEnable(vk::False)
-        .setCompareOp(vk::CompareOp::eAlways)
-        .setMipmapMode(vk::SamplerMipmapMode::eLinear)
-        .setMinLod(0.0f)
-        .setMaxLod(0.0f)
-        .setMipLodBias(0.0f);
+                .setMinFilter(vk::Filter::eLinear)
+                .setAddressModeU(vk::SamplerAddressMode::eRepeat)
+                .setAddressModeV(vk::SamplerAddressMode::eRepeat)
+                .setAddressModeW(vk::SamplerAddressMode::eRepeat)
+                .setAnisotropyEnable(vk::False)
+                .setMaxAnisotropy(1)
+                .setBorderColor(vk::BorderColor::eIntOpaqueBlack)
+                .setUnnormalizedCoordinates(vk::False)
+                .setCompareEnable(vk::False)
+                .setCompareOp(vk::CompareOp::eAlways)
+                .setMipmapMode(vk::SamplerMipmapMode::eLinear)
+                .setMinLod(0.0f)
+                .setMaxLod(0.0f)
+                .setMipLodBias(0.0f);
 
-        sampler_=device.createSampler(createInfo);
+        sampler_ = device.createSampler(createInfo);
     }
 
 }

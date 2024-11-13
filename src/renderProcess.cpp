@@ -140,12 +140,16 @@ namespace schoo {
 
     vk::DescriptorSetLayout RenderProcess::createSetLayout() {
         vk::DescriptorSetLayoutCreateInfo createInfo;
-        vk::DescriptorSetLayoutBinding binding;
-        binding.setBinding(0)
+        std::array<vk::DescriptorSetLayoutBinding,2> bindings;
+        bindings[0].setBinding(0)
                 .setDescriptorType(vk::DescriptorType::eUniformBuffer)
-                .setStageFlags(vk::ShaderStageFlagBits ::eVertex)
+                .setStageFlags(vk::ShaderStageFlagBits::eVertex)
                 .setDescriptorCount(1);
-        createInfo.setBindings(binding);
+        bindings[1].setBinding(1)
+                .setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
+                .setStageFlags(vk::ShaderStageFlagBits::eFragment)
+                .setDescriptorCount(1);
+        createInfo.setBindings(bindings);
         return Context::GetInstance().device.createDescriptorSetLayout(createInfo);
     }
 
