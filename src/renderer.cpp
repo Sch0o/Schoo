@@ -2,7 +2,7 @@
 #include"schoo/Context.hpp"
 #include"schoo/utils.hpp"
 
-
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include"glm/ext/matrix_clip_space.hpp"
 #include"glm/gtc/matrix_transform.hpp"
 
@@ -98,12 +98,13 @@ namespace schoo {
             cmdBuffers_[currentFrame].bindIndexBuffer(deviceIndexBuffer_->buffer, 0, vk::IndexType::eUint32);
             vk::RenderPassBeginInfo renderPassBeginInfo;
             vk::Rect2D area({0, 0}, {swapchain->width, swapchain->height});
-            vk::ClearValue clearValue;
-            clearValue.color = vk::ClearColorValue(std::array<float, 4>{0.1f, 0.1f, 0.1f, 1.0f});
+            std::array<vk::ClearValue,2> clearValues;
+            clearValues[0].color = vk::ClearColorValue(std::array<float, 4>{0.1f, 0.1f, 0.1f, 1.0f});
+            clearValues[1].depthStencil=vk::ClearDepthStencilValue(0.99f,0);
             renderPassBeginInfo.setRenderPass(renderProcess->renderPass)
                     .setRenderArea(area)
                     .setFramebuffer(swapchain->frameBuffers[imageIndex])
-                    .setClearValues(clearValue);
+                    .setClearValues(clearValues);
 
             cmdBuffers_[currentFrame].beginRenderPass(renderPassBeginInfo, {});
             cmdBuffers_[currentFrame].drawIndexed(indices.size(), 1, 0, 0, 0);

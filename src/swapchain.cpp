@@ -1,5 +1,6 @@
 #include"schoo/swapchain.hpp"
 #include"schoo/context.hpp"
+#include"schoo/utils.hpp"
 
 namespace schoo {
     Swapchain::Swapchain(uint32_t w, uint32_t h) {
@@ -34,6 +35,10 @@ namespace schoo {
         getImages();
         createImageViews();
 
+        createDepthImage();
+        createDepthImageView();
+        transitionImageLayoutToDepth();
+
     }
 
     Swapchain::~Swapchain() {
@@ -42,6 +47,11 @@ namespace schoo {
             device.destroyFramebuffer(frameBuffers[i]);
             device.destroyImageView(imageViews[i]);
         }
+
+        device.destroyImageView(depthImageView);
+        device.destroyImage(depthImage);
+        device.freeMemory(depthImageMemory);
+
         Context::GetInstance().device.destroySwapchainKHR(swapchain);
     }
 
@@ -109,12 +119,78 @@ namespace schoo {
         frameBuffers.resize(imageViews.size());
         for(int i=0;i<frameBuffers.size();i++){
             vk::FramebufferCreateInfo createInfo;
-            createInfo.setAttachments(imageViews[i])
+            std::array<vk::ImageView,2>attachments={imageViews[i],depthImageView};
+            createInfo.setAttachments(attachments)
             .setWidth(width)
             .setHeight(height)
             .setRenderPass(Context::GetInstance().renderProcess->renderPass)
             .setLayers(1);
             frameBuffers[i]=Context::GetInstance().device.createFramebuffer(createInfo);
         }
+    }
+
+    void Swapchain::createDepthImage(){
+        vk::ImageCreateInfo createInfo;
+        createInfo.setImageType(vk::ImageType::e2D)
+                .setArrayLayers(1)
+                .setMipLevels(1)
+                .setExtent({width, height, 1})
+                .setFormat(vk::Format::eD24UnormS8Uint)
+                .setTiling(vk::ImageTiling::eOptimal)
+                .setInitialLayout(vk::ImageLayout::eUndefined)
+                .setSamples(vk::SampleCountFlagBits::e1)
+                .setSharingMode(vk::SharingMode::eExclusive)
+                .setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment);
+        depthImage = Context::GetInstance().device.createImage(createInfo);
+
+        auto &device = Context::GetInstance().device;
+        vk::MemoryAllocateInfo allocateInfo;
+        auto requirements = device.getImageMemoryRequirements(depthImage);
+        allocateInfo.setAllocationSize(requirements.size);
+
+        auto index = Buffer::QueryBufferMemTypeIndex(requirements.memoryTypeBits,
+                                                     vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+        allocateInfo.setMemoryTypeIndex(index);
+        depthImageMemory = device.allocateMemory(allocateInfo);
+
+        //bind
+        device.bindImageMemory(depthImage, depthImageMemory, 0);
+    }
+
+    void Swapchain::createDepthImageView() {
+        depthImageView= CreateImageView(depthImage,vk::Format::eD24UnormS8Uint,vk::ImageAspectFlagBits::eDepth);
+    }
+
+    void Swapchain::transitionImageLayoutToDepth() {
+        vk::ImageLayout oldLayout=vk::ImageLayout::eUndefined;
+        vk::ImageLayout newLayout=vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
+        vk::CommandBuffer cmdBuffer = Context::GetInstance().commandManager->AllocateCmdBuffer();
+        Command::BeginSingleTimeCommands(cmdBuffer);
+        vk::ImageMemoryBarrier barrier;
+        barrier.setOldLayout(oldLayout)
+                .setNewLayout(newLayout)
+                .setImage(depthImage);
+        vk::ImageSubresourceRange range;
+        range.setBaseMipLevel(0)
+                .setLevelCount(1)
+                .setBaseArrayLayer(0)
+                .setLayerCount(1)
+                .setAspectMask(vk::ImageAspectFlagBits::eDepth);
+        barrier.setSubresourceRange(range);
+        barrier.setSrcAccessMask(vk::AccessFlagBits::eNone)
+                .setDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentRead|
+                vk::AccessFlagBits::eDepthStencilAttachmentWrite);
+
+        vk::PipelineStageFlags srcStage=vk::PipelineStageFlagBits::eTopOfPipe;
+        vk::PipelineStageFlags dstStage=vk::PipelineStageFlagBits::eEarlyFragmentTests;
+
+        cmdBuffer.pipelineBarrier(srcStage, dstStage, {},
+                                  {},
+                                  nullptr, barrier);
+
+        Command::EndSingleTimeComamands(cmdBuffer, Context::GetInstance().graphicsQueue);
+        Context::GetInstance().commandManager->FreeCommandbuffers(cmdBuffer);
     }
 }

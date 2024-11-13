@@ -13,14 +13,13 @@ namespace schoo {
         Window::Init(width, height, "schoo");
         Context::Init(schoo::Window::GetInstance());
         auto &context = Context::GetInstance();
+        context.InitCommandManager();
         context.InitSwapchain(width, height);
         Shader::Init(ReadWholeFile(R"(..\..\shader\vert.spv)"),
                      ReadWholeFile(R"(..\..\shader\frag.spv)"));
-        //context.renderProcess->CreateLayout();
         context.InitRenderProcess();
         context.swapchain->CreateFramebuffers();
         context.renderProcess->CreatePipeline();
-        context.InitCommandManager();
         context.InitRenderer();
     }
 

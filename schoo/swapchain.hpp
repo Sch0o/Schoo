@@ -23,6 +23,10 @@ namespace schoo{
         std::vector<vk::ImageView>imageViews;
         std::vector<vk::Framebuffer>frameBuffers;
 
+        vk::Image depthImage;
+        vk::DeviceMemory depthImageMemory;
+        vk::ImageView depthImageView;
+
         SwapchainInfo swapchainInfo;
         void queryInfo(uint32_t w,uint32_t h);
 
@@ -30,6 +34,9 @@ namespace schoo{
 
     private:
         void getImages();
+        void createDepthImage();
+        void createDepthImageView();
         void createImageViews();
+        void transitionImageLayoutToDepth();
     };
 }

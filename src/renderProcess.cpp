@@ -57,9 +57,11 @@ namespace schoo {
         multisample.setSampleShadingEnable(false)
                 .setRasterizationSamples(vk::SampleCountFlagBits::e1);
         createInfo.setPMultisampleState(&multisample);
-
         //test
         vk::PipelineDepthStencilStateCreateInfo depthStencilState;
+        depthStencilState.setDepthTestEnable(vk::True)
+        .setDepthWriteEnable(vk::True)
+        .setDepthCompareOp(vk::CompareOp::eLess);
         createInfo.setPDepthStencilState(&depthStencilState);
 
 
@@ -98,8 +100,8 @@ namespace schoo {
     void RenderProcess::CreateRenderPass() {
         vk::RenderPassCreateInfo createInfo;
 
-        vk::AttachmentDescription description;
-        description.setFormat(Context::GetInstance().swapchain->swapchainInfo.surfaceFormat.format)
+        std::array<vk::AttachmentDescription,2> descriptions;
+        descriptions[0].setFormat(Context::GetInstance().swapchain->swapchainInfo.surfaceFormat.format)
                 .setInitialLayout(vk::ImageLayout::eUndefined)
                 .setFinalLayout(vk::ImageLayout::ePresentSrcKHR)
                 .setLoadOp(vk::AttachmentLoadOp::eClear)
@@ -107,15 +109,26 @@ namespace schoo {
                 .setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
                 .setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
                 .setSamples(vk::SampleCountFlagBits::e1);
-        createInfo.setAttachments(description);
+        descriptions[1].setFormat(vk::Format::eD24UnormS8Uint)
+        .setSamples(vk::SampleCountFlagBits::e1)
+        .setLoadOp(vk::AttachmentLoadOp::eClear)
+        .setStoreOp(vk::AttachmentStoreOp::eDontCare)
+        .setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
+        .setStoreOp(vk::AttachmentStoreOp::eDontCare)
+        .setInitialLayout(vk::ImageLayout::eUndefined)
+        .setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+        createInfo.setAttachments(descriptions);
 
-        vk::AttachmentReference reference;
-        reference.setLayout(vk::ImageLayout::eColorAttachmentOptimal)
+        vk::AttachmentReference colorReference;
+        colorReference.setLayout(vk::ImageLayout::eColorAttachmentOptimal)
                 .setAttachment(0);
-
+        vk::AttachmentReference depthReference;
+        depthReference.setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal)
+        .setAttachment(1);
         vk::SubpassDescription subpassDescription;
         subpassDescription.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
-                .setColorAttachments(reference);
+                .setColorAttachments(colorReference)
+                .setPDepthStencilAttachment(&depthReference);
         createInfo.setSubpasses(subpassDescription);
 
 

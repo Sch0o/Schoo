@@ -82,6 +82,5 @@ namespace schoo {
         void createSurface(schoo::Window &window);
 
 
-
     };
 }

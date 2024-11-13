@@ -60,7 +60,6 @@ namespace schoo {
                 .setUsage(vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled);
         image = Context::GetInstance().device.createImage(createInfo);
     }
-
     void Texture::createImageView() {
         vk::ImageViewCreateInfo createInfo;
         vk::ComponentMapping mapping;
@@ -79,6 +78,7 @@ namespace schoo {
         view = Context::GetInstance().device.createImageView(createInfo);
 
     }
+
 
     void Texture::allocMemoryToImage() {
         auto &device = Context::GetInstance().device;

@@ -45,8 +45,8 @@ namespace schoo {
         }vp;
         float fov_=90;
 
-        std::vector<Vertex>&vertices = const_cast<std::vector<Vertex> &>(rect_vertices);
-        std::vector<uint32_t>&indices= const_cast<std::vector<uint32_t> &>(rect_indices);
+        std::vector<Vertex>&vertices = const_cast<std::vector<Vertex> &>(cube_vertices);
+        std::vector<uint32_t>&indices= const_cast<std::vector<uint32_t> &>(cube_indices);
 
         void initVP();
         void createCmdBuffers();
