@@ -35,7 +35,14 @@ namespace schoo {
         }
     };
 
-    const std::vector<Vertex> vertices = {
+    const std::vector<Vertex> rect_vertices = {
+            {{-0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}}, // 0
+            {{0.5f,  -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}},  // 1
+            {{0.5f,  0.5f,  0.0f}, {1.0f, 1.0f, 1.0f}},  // 2
+            {{-0.5f, 0.5f,  0.0f}, {1.0f, 1.0f, 1.0f}}, // 3
+    };
+
+    const std::vector<Vertex> cube_vertices = {
             {{-0.5f, -0.5f, 0.5f},  {1.0f, 1.0f, 1.0f}}, // 0
             {{0.5f,  -0.5f, 0.5f},  {1.0f, 1.0f, 1.0f}},  // 1
             {{0.5f,  0.5f,  0.5f},  {1.0f, 1.0f, 1.0f}},  // 2
@@ -46,7 +53,10 @@ namespace schoo {
             {{-0.5f, 0.5f,  -0.5f}, {1.0f, 1.0f, 1.0f}}  // 7
     };
 
-    const std::vector<uint32_t> indices = {
+    const std::vector<uint32_t> rect_indices = {
+            0, 1, 2, 0, 2, 3
+    };
+    const std::vector<uint32_t> cube_indices = {
             // 正面
             0, 1, 2, 2, 3, 0,
             // 背面

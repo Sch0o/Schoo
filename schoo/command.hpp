@@ -16,6 +16,9 @@ namespace schoo {
 
         vk::CommandBuffer AllocateCmdBuffer();
 
+        static void BeginSingleTimeCommands(vk::CommandBuffer &);
+        static void EndSingleTimeComamands(vk::CommandBuffer&,vk::Queue&);
+
 
     private:
         vk::CommandPool cmdPool_;

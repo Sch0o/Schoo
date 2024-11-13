@@ -1,4 +1,5 @@
 #include "schoo/utils.hpp"
+#include "filesystem"
 
 namespace schoo{
     std::string ReadWholeFile(const std::string&filename){
@@ -16,5 +17,14 @@ namespace schoo{
         file.read(context.data(),context.size());
 
         return context;
+    }
+
+    bool CheckPath(const std::string path){
+        if(std::filesystem::exists(path)){
+            return true;
+        }else{
+            std::cout<<"this path :"<<path<<"is not exist"<<std::endl;
+            return false;
+        }
     }
 }

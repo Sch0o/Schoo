@@ -53,5 +53,13 @@ namespace schoo {
         return info;
     }
 
+    std::uint32_t Buffer::QueryBufferMemTypeIndex(std::uint32_t type,vk::MemoryPropertyFlags flags){
+        auto property=Context::GetInstance().physicalDevice.getMemoryProperties();
+        for(std::uint32_t i=0;i<property.memoryTypeCount;i++){
+            if((1<<i)&type&&property.memoryTypes[i].propertyFlags&flags){
+                return i;
+            }
+        }
+    }
 
 }

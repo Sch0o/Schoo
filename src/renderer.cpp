@@ -1,12 +1,15 @@
 #include"schoo/renderer.hpp"
 #include"schoo/Context.hpp"
-#include"schoo/vertexData.hpp"
+#include"schoo/utils.hpp"
+
+
 #include"glm/ext/matrix_clip_space.hpp"
 #include"glm/gtc/matrix_transform.hpp"
 
 namespace schoo {
 
     Renderer::Renderer(uint32_t frameNums) {
+
         this->frameNums = frameNums;
         createSemaphores();
         createFences();
@@ -27,6 +30,11 @@ namespace schoo {
         allocateSets();
         updateSets();
 
+        createTextures();
+        createSampler();
+
+
+
 
     }
 
@@ -34,12 +42,16 @@ namespace schoo {
         auto &commandManager = Context::GetInstance().commandManager;
         auto &device = Context::GetInstance().device;
 
+        device.destroySampler(sampler_);
+        texture_.reset();
+
         device.destroyDescriptorPool(descriptorPool_);
 
         hostVertexBuffer_.reset();
         deviceVertexBuffer_.reset();
         hostUniformBuffer_.reset();
         deviceUniformBuffer_.reset();
+
 
         for (int i = 0; i < frameNums; i++) {
             commandManager->FreeCommandbuffers(cmdBuffers_[i]);
@@ -205,8 +217,6 @@ namespace schoo {
         Context::GetInstance().commandManager->FreeCommandbuffers(cmdBuffer);
     }
 
-
-
     void Renderer::loadVertexData() {
         void *data = Context::GetInstance().device.mapMemory(hostVertexBuffer_->memory, 0, hostVertexBuffer_->size);
         memcpy(data, vertices.data(), hostVertexBuffer_->size);
@@ -229,9 +239,6 @@ namespace schoo {
 
         copyBuffer(hostUniformBuffer_->buffer, deviceUniformBuffer_->buffer, hostUniformBuffer_->size, 0, 0);
     }
-
-
-
 
     void Renderer::createDescriptorPool() {
         vk::DescriptorPoolCreateInfo createInfo;
@@ -274,7 +281,7 @@ namespace schoo {
     }
 
     void Renderer::initVP() {
-        glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+        glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 2.0f);
         glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
         vp.view = glm::lookAt(cameraPos, cameraTarget, up);
@@ -282,6 +289,36 @@ namespace schoo {
         uint32_t width = Context::GetInstance().swapchain->width;
         uint32_t height = Context::GetInstance().swapchain->height;
         vp.project = glm::perspective(glm::radians(fov_), width / (height * 1.0f), 0.1f, 100.0f);
+    }
+
+    void Renderer::createTextures(){
+        const std::string path="../../textures/img.png";
+        if(CheckPath(path)){
+            texture_.reset(new Texture(path));
+        }
+    }
+
+    void Renderer::createSampler() {
+        auto &device=Context::GetInstance().device;
+
+        vk::SamplerCreateInfo createInfo;
+        createInfo.setMagFilter(vk::Filter::eLinear)
+        .setMinFilter(vk::Filter::eLinear)
+        .setAddressModeU(vk::SamplerAddressMode::eRepeat)
+        .setAddressModeV(vk::SamplerAddressMode::eRepeat)
+        .setAddressModeW(vk::SamplerAddressMode::eRepeat)
+        .setAnisotropyEnable(vk::False)
+        .setMaxAnisotropy(1)
+        .setBorderColor(vk::BorderColor::eIntOpaqueBlack)
+        .setUnnormalizedCoordinates(vk::False)
+        .setCompareEnable(vk::False)
+        .setCompareOp(vk::CompareOp::eAlways)
+        .setMipmapMode(vk::SamplerMipmapMode::eLinear)
+        .setMinLod(0.0f)
+        .setMaxLod(0.0f)
+        .setMipLodBias(0.0f);
+
+        sampler_=device.createSampler(createInfo);
     }
 
 }

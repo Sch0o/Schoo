@@ -11,6 +11,10 @@ namespace schoo{
 
         Buffer(size_t size1,vk::BufferUsageFlags usage,vk::MemoryPropertyFlags property);
         ~Buffer();
+
+        static std::uint32_t QueryBufferMemTypeIndex(std::uint32_t type,vk::MemoryPropertyFlags flags);
+        void CopyDataToBuffer(void *src);
+
     private:
 
         struct MemoryInfo final {

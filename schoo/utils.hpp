@@ -7,4 +7,5 @@
 
 namespace schoo{
     std::string ReadWholeFile(const std::string&filename);
+    bool CheckPath(const std::string path);
 }

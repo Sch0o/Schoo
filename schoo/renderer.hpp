@@ -2,6 +2,8 @@
 #include"vulkan/vulkan.hpp"
 #include"buffer.hpp"
 #include"glm/glm.hpp"
+#include "vertexData.hpp"
+#include "texture.hpp"
 
 
 namespace schoo {
@@ -13,6 +15,10 @@ namespace schoo {
         void Render();
         void InitRenderer();
     private:
+
+        std::unique_ptr<Texture> texture_;
+        vk::Sampler sampler_;
+
         uint32_t frameNums;
         uint32_t currentFrame=0;
         std::vector<vk::Semaphore> imageAvaliables_;
@@ -39,6 +45,9 @@ namespace schoo {
         }vp;
         float fov_=90;
 
+        std::vector<Vertex>&vertices = const_cast<std::vector<Vertex> &>(rect_vertices);
+        std::vector<uint32_t>&indices= const_cast<std::vector<uint32_t> &>(rect_indices);
+
         void initVP();
         void createCmdBuffers();
         void createSemaphores();
@@ -46,6 +55,8 @@ namespace schoo {
         void createVertexBuffer();
         void createIndexBuffer();
         void createUniformBuffer();
+        void createTextures();
+        void createSampler();
 
         void loadIndexData();
         void loadVertexData();
