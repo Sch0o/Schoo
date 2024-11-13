@@ -177,7 +177,7 @@ namespace schoo {
                 .setLevelCount(1)
                 .setBaseArrayLayer(0)
                 .setLayerCount(1)
-                .setAspectMask(vk::ImageAspectFlagBits::eDepth);
+                .setAspectMask(vk::ImageAspectFlagBits::eDepth|vk::ImageAspectFlagBits::eStencil);
         barrier.setSubresourceRange(range);
         barrier.setSrcAccessMask(vk::AccessFlagBits::eNone)
                 .setDstAccessMask(vk::AccessFlagBits::eDepthStencilAttachmentRead|
