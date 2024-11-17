@@ -33,10 +33,20 @@ namespace schoo {
         uint32_t width;
         uint32_t height;
 
+        static bool firstMouse;
+        static float lastX;
+        static float lastY;
+
+
 
     private:
         static std::unique_ptr<Window> instance_;
 
         Window(uint32_t width, uint32_t height, const char *title);
+
+        static void mouse_move_callback(GLFWwindow *window, double xPos, double yPos);
+
+        static void key_press_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
+
     };
 }

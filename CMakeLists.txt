@@ -20,7 +20,10 @@ execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shader/shader.frag 
 
 aux_source_directory(src SRC)
 add_library(schoo STATIC ${SRC}
-        src/texture.cpp)
+        src/texture.cpp
+        schoo/camera.hpp
+        src/camera.cpp
+        src/ioProcess.cpp)
 target_include_directories(schoo PUBLIC
         ${PROJECT_SOURCE_DIR}
         ${PROJECT_SOURCE_DIR}/external/include

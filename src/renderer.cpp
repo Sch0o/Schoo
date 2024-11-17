@@ -1,6 +1,7 @@
 #include"schoo/renderer.hpp"
 #include"schoo/Context.hpp"
 #include"schoo/utils.hpp"
+#include"schoo/schoo.hpp"
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include"glm/ext/matrix_clip_space.hpp"
@@ -32,9 +33,6 @@ namespace schoo {
         createDescriptorPool();
         allocateSets();
         writeSets();
-
-
-
 
     }
 
@@ -303,10 +301,7 @@ namespace schoo {
     }
 
     void Renderer::initVP() {
-        glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 2.0f);
-        glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
-        glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-        vp.view = glm::lookAt(cameraPos, cameraTarget, up);
+        vp.view = Schoo::GetInstance().camera->GetViewMatrix();
 
         uint32_t width = Context::GetInstance().swapchain->width;
         uint32_t height = Context::GetInstance().swapchain->height;
@@ -342,5 +337,11 @@ namespace schoo {
 
         sampler_ = device.createSampler(createInfo);
     }
+
+    void Renderer::UpdateViewMatrix() {
+        vp.view=Schoo::GetInstance().camera->GetViewMatrix();
+        loadUniformData();
+    }
+
 
 }

@@ -14,6 +14,7 @@ namespace schoo {
 
         void Render();
         void InitRenderer();
+        void UpdateViewMatrix();
     private:
 
         std::unique_ptr<Texture> texture_;
