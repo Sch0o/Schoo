@@ -8,5 +8,5 @@ layout(location=0) out vec4 outcolor;
 layout(set=0, binding=1) uniform sampler2D texSampler;
 
 void main(){
-    outcolor=vec4(0.5f,0.5f,0.5f,1.0f);
+    outcolor=texture(texSampler,fragTexCoord);
 }

@@ -18,21 +18,18 @@ execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shader/shader.vert 
 execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shader/shader.frag -o ${CMAKE_SOURCE_DIR}/shader/frag.spv)
 
 
-aux_source_directory(src SRC)
-add_library(schoo STATIC ${SRC}
-        src/texture.cpp
-        schoo/camera.hpp
-        src/camera.cpp
-        src/ioProcess.cpp)
-target_include_directories(schoo PUBLIC
+aux_source_directory(source SRC)
+add_library(schoo_lib STATIC ${SRC}
+        source/model.cpp
+        schoo/model.hpp)
+target_include_directories(schoo_lib PUBLIC
         ${PROJECT_SOURCE_DIR}
-        ${PROJECT_SOURCE_DIR}/external/include
+        ${PROJECT_SOURCE_DIR}/external
         ${PROJECT_SOURCE_DIR}/schoo
-
 )
-target_link_libraries(schoo PRIVATE ${PROJECT_SOURCE_DIR}/External/lib/glfw3.lib)
+target_link_libraries(schoo_lib PRIVATE ${PROJECT_SOURCE_DIR}/External/lib/glfw3.lib)
 
-target_link_libraries(schoo PUBLIC Vulkan::Vulkan)
+target_link_libraries(schoo_lib PUBLIC Vulkan::Vulkan)
 
 add_subdirectory(sandBox)
 

@@ -20,7 +20,7 @@ namespace schoo{
         float mouseSensitivity_=0.005f;
         float pitch_;
         float yaw_;
-        float moveSpeed=20.0f;
+        float moveSpeed=10.0f;
 
         void updateCameraVectors();
 

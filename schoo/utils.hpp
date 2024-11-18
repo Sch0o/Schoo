@@ -15,4 +15,6 @@ namespace schoo {
     vk::Image CreateImage();
 
     void transitionImageLayout(vk::ImageLayout oldLayout, vk::ImageLayout newlayout);
+
+    void copyBuffer(vk::Buffer &src, vk::Buffer &dst, size_t size, size_t srcOffset, size_t dstOffset);
 }
