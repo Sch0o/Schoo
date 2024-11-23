@@ -4,7 +4,7 @@
 #define  TINYOBJLOADER_IMPLEMENTATION
 #include"tinyobjloader/tiny_obj_loader.h"
 namespace schoo {
-    Model::Model(const std::string &model_path, const std::string &texture_path) {
+    Model::Model(const std::string &model_path, const std::string &texture_path,glm::vec3 position) {
         CheckPath(model_path);
         CheckPath(texture_path);
 
@@ -13,16 +13,17 @@ namespace schoo {
         loadObj(model_path);
 
         createVertexBuffer();
-        loadVertexData();
+        //loadVertexData();
 
         createIndexBuffer();
-        loadIndexData();
+        //loadIndexData();
+        createModelMatBuffer();
+
+        this->position=position;
     }
     Model::~Model(){
         auto&device=Context::GetInstance().device;
 
-        hostVertexBuffer_.reset();
-        hostIndexBuffer_.reset();
         indexBuffer.reset();
         vertexBuffer.reset();
         
@@ -67,7 +68,8 @@ namespace schoo {
 
     void Model::createVertexBuffer() {
         vk::DeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-        hostVertexBuffer_.reset(new Buffer(bufferSize,
+        std::shared_ptr<Buffer>hostVertexBuffer;
+        hostVertexBuffer.reset(new Buffer(bufferSize,
                                            vk::BufferUsageFlagBits::eTransferSrc,
                                            vk::MemoryPropertyFlagBits::eHostCoherent |
                                            vk::MemoryPropertyFlagBits::eHostVisible));
@@ -76,12 +78,13 @@ namespace schoo {
                                       vk::BufferUsageFlagBits::eVertexBuffer |
                                       vk::BufferUsageFlagBits::eTransferDst,
                                       vk::MemoryPropertyFlagBits::eDeviceLocal));
-
+        loadDataHostToDevice(hostVertexBuffer,vertexBuffer,vertices.data());
     }
 
     void Model::createIndexBuffer() {
         size_t bufferSize = sizeof(indices[0]) * indices.size();
-        hostIndexBuffer_.reset(new Buffer(bufferSize,
+        std::shared_ptr<Buffer>hostIndexBuffer;
+        hostIndexBuffer.reset(new Buffer(bufferSize,
                                           vk::BufferUsageFlagBits::eTransferSrc,
                                           vk::MemoryPropertyFlagBits::eHostCoherent |
                                           vk::MemoryPropertyFlagBits::eHostVisible));
@@ -90,21 +93,61 @@ namespace schoo {
                                      vk::BufferUsageFlagBits::eIndexBuffer |
                                      vk::BufferUsageFlagBits::eTransferDst,
                                      vk::MemoryPropertyFlagBits::eDeviceLocal));
+
+        loadDataHostToDevice(hostIndexBuffer,indexBuffer,indices.data());
     }
 
-    void Model::loadVertexData() {
-        void *data = Context::GetInstance().device.mapMemory(hostVertexBuffer_->memory, 0, hostVertexBuffer_->size);
-        memcpy(data, vertices.data(), hostVertexBuffer_->size);
-        Context::GetInstance().device.unmapMemory(hostVertexBuffer_->memory);
+    void Model::
+    createModelMatBuffer() {
+        glm::mat4 modelMat=glm::mat4(1.0f);
+        modelMat=glm::translate(modelMat,position);
 
-        copyBuffer(hostVertexBuffer_->buffer, vertexBuffer->buffer, hostVertexBuffer_->size, 0, 0);
+        vk::DeviceSize bufferSize=sizeof(modelMat);
+        std::shared_ptr<Buffer>stagingBuffer;
+        stagingBuffer.reset(new Buffer(bufferSize,
+                                          vk::BufferUsageFlagBits::eTransferSrc,
+                                          vk::MemoryPropertyFlagBits::eHostCoherent |
+                                          vk::MemoryPropertyFlagBits::eHostVisible));
+
+        modelMatBuffer.reset(new Buffer(bufferSize,
+                                      vk::BufferUsageFlagBits::eUniformBuffer |
+                                      vk::BufferUsageFlagBits::eTransferDst,
+                                      vk::MemoryPropertyFlagBits::eDeviceLocal));
+        loadDataHostToDevice(stagingBuffer,modelMatBuffer,&modelMat);
     }
 
-    void Model::loadIndexData() {
-        void *data = Context::GetInstance().device.mapMemory(hostIndexBuffer_->memory, 0, hostIndexBuffer_->size);
-        memcpy(data, indices.data(), hostIndexBuffer_->size);
-        Context::GetInstance().device.unmapMemory(hostIndexBuffer_->memory);
 
-        copyBuffer(hostIndexBuffer_->buffer, indexBuffer->buffer, hostIndexBuffer_->size, 0, 0);
+    void Model::loadDataHostToDevice(const std::shared_ptr<Buffer> &hostBuffer, const std::shared_ptr<Buffer> &DeviceBuffer,
+                                const void *src) {
+        void *data = Context::GetInstance().device.mapMemory(hostBuffer->memory, 0, hostBuffer->size);
+        memcpy(data, src, hostBuffer->size);
+        Context::GetInstance().device.unmapMemory(hostBuffer->memory);
+
+        copyBuffer(hostBuffer->buffer, DeviceBuffer->buffer, hostBuffer->size, 0, 0);
+
     }
+
+//    void Model::loadVertexData() {
+//        void *data = Context::GetInstance().device.mapMemory(hostVertexBuffer_->memory, 0, hostVertexBuffer_->size);
+//        memcpy(data, vertices.data(), hostVertexBuffer_->size);
+//        Context::GetInstance().device.unmapMemory(hostVertexBuffer_->memory);
+//
+//        copyBuffer(hostVertexBuffer_->buffer, vertexBuffer->buffer, hostVertexBuffer_->size, 0, 0);
+//    }
+
+//    void Model::loadIndexData() {
+//        void *data = Context::GetInstance().device.mapMemory(hostIndexBuffer_->memory, 0, hostIndexBuffer_->size);
+//        memcpy(data, indices.data(), hostIndexBuffer_->size);
+//        Context::GetInstance().device.unmapMemory(hostIndexBuffer_->memory);
+//
+//        copyBuffer(hostIndexBuffer_->buffer, indexBuffer->buffer, hostIndexBuffer_->size, 0, 0);
+//    }
+//    void Model::loadModelMatData() {
+//        void *data = Context::GetInstance().device.mapMemory(hostIndexBuffer_->memory, 0, hostIndexBuffer_->size);
+//        memcpy(data, indices.data(), hostIndexBuffer_->size);
+//        Context::GetInstance().device.unmapMemory(hostIndexBuffer_->memory);
+//
+//        copyBuffer(hostIndexBuffer_->buffer, indexBuffer->buffer, hostIndexBuffer_->size, 0, 0);
+//    }
+
 }

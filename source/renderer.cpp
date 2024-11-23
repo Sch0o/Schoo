@@ -6,7 +6,6 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
 #include"external/glm/ext/matrix_clip_space.hpp"
-#include"external/glm/gtc/matrix_transform.hpp"
 
 namespace schoo {
 
@@ -18,7 +17,7 @@ namespace schoo {
         createCmdBuffers();
 
         initVP();
-        loadModel();
+        loadModels();
 
         createUniformBuffer();
         loadUniformData();
@@ -26,7 +25,7 @@ namespace schoo {
 
         createDescriptorPool();
         allocateSets();
-        writeSets();
+        updateSets();
 
     }
 
@@ -35,7 +34,6 @@ namespace schoo {
         auto &device = Context::GetInstance().device;
 
         device.destroySampler(sampler_);
-
 
 
         device.destroyDescriptorPool(descriptorPool_);
@@ -82,13 +80,6 @@ namespace schoo {
         cmdBuffers_[currentFrame].begin(beginInfo);
         {
             cmdBuffers_[currentFrame].bindPipeline(vk::PipelineBindPoint::eGraphics, renderProcess->pipeline);
-
-            vk::DeviceSize offset = 0;
-            cmdBuffers_[currentFrame].bindVertexBuffers(0, deviceVertexBuffer_->buffer, offset);
-            cmdBuffers_[currentFrame].bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-                                                         Context::GetInstance().renderProcess->layout, 0,
-                                                         sets_[currentFrame], {});
-            cmdBuffers_[currentFrame].bindIndexBuffer(deviceIndexBuffer_->buffer, 0, vk::IndexType::eUint32);
             vk::RenderPassBeginInfo renderPassBeginInfo;
             vk::Rect2D area({0, 0}, {swapchain->width, swapchain->height});
             std::array<vk::ClearValue, 2> clearValues;
@@ -99,8 +90,20 @@ namespace schoo {
                     .setFramebuffer(swapchain->frameBuffers[imageIndex])
                     .setClearValues(clearValues);
 
+            cmdBuffers_[currentFrame].bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
+                                                         Context::GetInstance().renderProcess->layout, 0,
+                                                         vpSets_[0], {});
+
             cmdBuffers_[currentFrame].beginRenderPass(renderPassBeginInfo, {});
-            cmdBuffers_[currentFrame].drawIndexed(indexCount, 1, 0, 0, 0);
+            for (const auto &model: models) {
+                vk::DeviceSize offset = 0;
+                cmdBuffers_[currentFrame].bindVertexBuffers(0, model->vertexBuffer->buffer, offset);
+                cmdBuffers_[currentFrame].bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
+                                                             Context::GetInstance().renderProcess->layout, 1,
+                                                             model->sets[0], {});
+                cmdBuffers_[currentFrame].bindIndexBuffer(model->indexBuffer->buffer, 0, vk::IndexType::eUint32);
+                cmdBuffers_[currentFrame].drawIndexed(model->indices.size(), 1, 0, 0, 0);
+            }
             cmdBuffers_[currentFrame].endRenderPass();
         }
         cmdBuffers_[currentFrame].end();
@@ -120,7 +123,6 @@ namespace schoo {
         if (Context::GetInstance().presentQueue.presentKHR(presentInfoKhr) != vk::Result::eSuccess) {
             std::cout << "image present failed" << std::endl;
         }
-
 
         currentFrame = (currentFrame + 1) % frameNums;
     }
@@ -148,7 +150,6 @@ namespace schoo {
     void Renderer::createCmdBuffers() {
         cmdBuffers_ = Context::GetInstance().commandManager->AllocateCmdBuffers(frameNums);
     }
-
 
     void Renderer::createUniformBuffer() {
         size_t bufferSize = sizeof(vp);
@@ -178,57 +179,75 @@ namespace schoo {
         vk::DescriptorPoolCreateInfo createInfo;
         std::array<vk::DescriptorPoolSize, 2> poolSizes;
         poolSizes[0].setType(vk::DescriptorType::eUniformBuffer)
-                .setDescriptorCount(frameNums);
-        poolSizes[1].setType(vk::DescriptorType::eUniformBuffer)
-                .setDescriptorCount(frameNums);
-        createInfo.setMaxSets(frameNums)
+                .setDescriptorCount(models.size() + 1);
+        poolSizes[1].setType(vk::DescriptorType::eCombinedImageSampler)
+                .setDescriptorCount(models.size());
+        createInfo.setMaxSets(models.size() + 1)
                 .setPoolSizes(poolSizes);
         descriptorPool_ = Context::GetInstance().device.createDescriptorPool(createInfo);
     }
 
     void Renderer::allocateSets() {
-        std::vector<vk::DescriptorSetLayout> layouts(frameNums, Context::GetInstance().renderProcess->setLayout);
+        std::vector<vk::DescriptorSetLayout> vpSetLayouts(1, Context::GetInstance().renderProcess->vpSetLayout);
         vk::DescriptorSetAllocateInfo allocateInfo;
-        allocateInfo.setSetLayouts(layouts)
+        allocateInfo.setSetLayouts(vpSetLayouts)
                 .setDescriptorPool(descriptorPool_)
-                .setDescriptorSetCount(frameNums);
+                .setDescriptorSetCount(1);
+        vpSets_ = Context::GetInstance().device.allocateDescriptorSets(allocateInfo);
 
-        sets_ = Context::GetInstance().device.allocateDescriptorSets(allocateInfo);
+        for (auto &model: models) {
+            std::vector<vk::DescriptorSetLayout> modelSetLayouts(1,
+                                                                 Context::GetInstance().renderProcess->modelSetLayout);
+            vk::DescriptorSetAllocateInfo allocateInfoModel;
+            allocateInfoModel.setSetLayouts(modelSetLayouts)
+                    .setDescriptorPool(descriptorPool_)
+                    .setDescriptorSetCount(1);
+            model->sets = Context::GetInstance().device.allocateDescriptorSets(allocateInfoModel);
+        }
     }
 
-    void Renderer::writeSets() {
-        for (int i = 0; i < frameNums; i++) {
-            auto &set = sets_[i];
-            vk::DescriptorBufferInfo bufferInfo;
-            vk::DescriptorImageInfo imageInfo;
-            std::array<vk::WriteDescriptorSet, 2> writer;
-
-            //mvp
-            bufferInfo.setOffset(0)
-                    .setBuffer(deviceUniformBuffer_->buffer)
-                    .setRange(deviceUniformBuffer_->size);
-
-            writer[0].setDescriptorCount(1)
+    void Renderer::updateSets() {
+        //vp
+        vk::DescriptorBufferInfo vpBufferInfo;
+        vpBufferInfo.setOffset(0)
+                .setBuffer(deviceUniformBuffer_->buffer)
+                .setRange(deviceUniformBuffer_->size);
+        std::array<vk::WriteDescriptorSet, 1> vpWriter;
+        vpWriter[0].setDescriptorCount(1)
+                .setDescriptorType(vk::DescriptorType::eUniformBuffer)
+                .setBufferInfo(vpBufferInfo)
+                .setDstBinding(0)
+                .setDstSet(vpSets_[0])
+                .setDstArrayElement(0);
+        Context::GetInstance().device.updateDescriptorSets(vpWriter, {});
+        //model and sampler
+        std::array<vk::WriteDescriptorSet, 2> modelWriters;
+        for (auto &model: models) {
+            auto &set = model->sets[0];
+            //model matrix
+            vk::DescriptorBufferInfo modelBufferInfo;
+            modelBufferInfo.setOffset(0)
+                    .setBuffer(model->modelMatBuffer->buffer)
+                    .setRange(model->modelMatBuffer->size);
+            modelWriters[0].setDescriptorCount(1)
                     .setDescriptorType(vk::DescriptorType::eUniformBuffer)
-                    .setBufferInfo(bufferInfo)
+                    .setBufferInfo(modelBufferInfo)
                     .setDstBinding(0)
                     .setDstSet(set)
                     .setDstArrayElement(0);
-
             //texcoord
+            vk::DescriptorImageInfo imageInfo;
             imageInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal)
-                    .setImageView(texture_->view)
+                    .setImageView(model->texture->view)
                     .setSampler(sampler_);
 
-            writer[1].setDescriptorCount(1)
+            modelWriters[1].setDescriptorCount(1)
                     .setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
                     .setImageInfo(imageInfo)
                     .setDstBinding(1)
                     .setDstSet(set)
                     .setDstArrayElement(0);
-
-
-            Context::GetInstance().device.updateDescriptorSets(writer, {});
+            Context::GetInstance().device.updateDescriptorSets(modelWriters, {});
         }
     }
 
@@ -238,7 +257,7 @@ namespace schoo {
         uint32_t width = Context::GetInstance().swapchain->width;
         uint32_t height = Context::GetInstance().swapchain->height;
         vp.project = glm::perspective(glm::radians(fov_), width / (height * 1.0f), 0.1f, 100.0f);
-        vp.project[1][1]*=-1;
+        vp.project[1][1] *= -1;
     }
 
     void Renderer::createSampler() {
@@ -269,13 +288,14 @@ namespace schoo {
         loadUniformData();
     }
 
-    void Renderer::loadModel() {
-        model.reset(new Model(R"(..\..\assets\models\marry\Marry.obj)",
-                              R"(..\..\assets\models\marry\MC003_Kozakura_Mari.png)"));
-        deviceVertexBuffer_ = model->vertexBuffer;
-        deviceIndexBuffer_ = model->indexBuffer;
-        texture_=model->texture;
-        indexCount = model->indices.size();
+    void Renderer::loadModels() {
+        models.resize(2);
+        models[0].reset(new Model(R"(..\..\assets\models\marry\Marry.obj)",
+                                  R"(..\..\assets\models\marry\MC003_Kozakura_Mari.png)",
+                                  glm::vec3(0, 0.5f, 0)));
+        models[1].reset(new Model(R"(..\..\assets\models\floor\floor.obj)",
+                                  R"(..\..\assets\textures\2x2white.png)",
+                                  glm::vec3(0, 0, 0)));
     }
 
 }

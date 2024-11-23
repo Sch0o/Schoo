@@ -5,7 +5,7 @@
 
 namespace schoo {
     RenderProcess::RenderProcess() {
-        setLayout = createSetLayout();
+        createSetLayout();
         layout = createLayout();
         CreateRenderPass();
         pipeline = nullptr;
@@ -91,8 +91,10 @@ namespace schoo {
     }
 
     vk::PipelineLayout RenderProcess::createLayout() {
+        std::array<vk::DescriptorSetLayout, 2> setLayouts = {vpSetLayout, modelSetLayout};
+
         vk::PipelineLayoutCreateInfo createInfo;
-        createInfo.setSetLayouts(setLayout);
+        createInfo.setSetLayouts(setLayouts);
         return Context::GetInstance().device.createPipelineLayout(createInfo);
 
     }
@@ -146,24 +148,36 @@ namespace schoo {
     RenderProcess::~RenderProcess() {
         auto &device = Context::GetInstance().device;
         device.destroyRenderPass(renderPass);
-        device.destroyDescriptorSetLayout(setLayout);
+        device.destroyDescriptorSetLayout(vpSetLayout);
+        device.destroyDescriptorSetLayout(modelSetLayout);
         device.destroyPipelineLayout(layout);
         device.destroyPipeline(pipeline);
     }
 
-    vk::DescriptorSetLayout RenderProcess::createSetLayout() {
-        vk::DescriptorSetLayoutCreateInfo createInfo;
-        std::array<vk::DescriptorSetLayoutBinding,2> bindings;
-        bindings[0].setBinding(0)
+    void RenderProcess::createSetLayout() {
+        //model matrix and sampler
+        vk::DescriptorSetLayoutCreateInfo createInfoModel;
+        std::array<vk::DescriptorSetLayoutBinding,2> bindingsModel;
+        bindingsModel[0].setBinding(0)
                 .setDescriptorType(vk::DescriptorType::eUniformBuffer)
                 .setStageFlags(vk::ShaderStageFlagBits::eVertex)
                 .setDescriptorCount(1);
-        bindings[1].setBinding(1)
+        bindingsModel[1].setBinding(1)
                 .setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
                 .setStageFlags(vk::ShaderStageFlagBits::eFragment)
                 .setDescriptorCount(1);
-        createInfo.setBindings(bindings);
-        return Context::GetInstance().device.createDescriptorSetLayout(createInfo);
+        createInfoModel.setBindings(bindingsModel);
+        modelSetLayout=Context::GetInstance().device.createDescriptorSetLayout(createInfoModel);
+
+        //vp matrix
+        vk::DescriptorSetLayoutCreateInfo createInfoVP;
+        std::array<vk::DescriptorSetLayoutBinding,1> bindingsVP;
+        bindingsVP[0].setBinding(0)
+                .setDescriptorType(vk::DescriptorType::eUniformBuffer)
+                .setStageFlags(vk::ShaderStageFlagBits::eVertex)
+                .setDescriptorCount(1);
+        createInfoVP.setBindings(bindingsVP);
+        vpSetLayout=Context::GetInstance().device.createDescriptorSetLayout(createInfoVP);
     }
 
 }

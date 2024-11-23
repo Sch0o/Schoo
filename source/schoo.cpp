@@ -68,7 +68,8 @@ namespace schoo {
         lastTime=currentTime;
 
         if(currentTime-lastSec>1){
-            std::cout<<"FPS: "<<frameNums<<std::endl;
+            std::cout<<"FPS: "<<frameNums<<"  ";
+            std::cout<<std::fixed<<std::setprecision(2)<<"Frame Times: "<<deltaTime*1000<<"ms"<<std::endl;
             lastSec=currentTime;
             frameNums=0;
         }
@@ -82,7 +83,7 @@ namespace schoo {
         Context::GetInstance().renderer->Render();
     }
     void Schoo::InitCamera() {
-        camera.reset(new Camera(glm::vec3(0,0,3),0,0,glm::vec3(0,1,0)));
+        camera.reset(new Camera(glm::vec3(0,3,5),0,-90,glm::vec3(0,1,0)));
     }
 
     Schoo::~Schoo() {

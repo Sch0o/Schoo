@@ -11,6 +11,9 @@ layout(set=0, binding=0) uniform UBO{
     mat4 view;
     mat4 project;
 }ubo;
+layout(set=1,binding=0) uniform ModelBlock{
+    mat4 model;
+}modelUniform;
 
 void main(){
     gl_Position=ubo.project*ubo.view*vec4(position, 1.0);

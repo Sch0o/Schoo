@@ -17,17 +17,12 @@ namespace schoo {
 
         void Render();
 
-        void InitRenderer();
-
         void UpdateViewMatrix();
 
     private:
-
-        std::shared_ptr<Model>model;
-        std::shared_ptr<Texture> texture_;
+        std::vector<std::shared_ptr<Model>>models;
         vk::Sampler sampler_;
 
-        uint32_t indexCount;
         uint32_t frameNums;
         uint32_t currentFrame = 0;
         std::vector<vk::Semaphore> imageAvaliables_;
@@ -36,24 +31,17 @@ namespace schoo {
 
         std::vector<vk::CommandBuffer> cmdBuffers_;
 
-        std::shared_ptr<Buffer> deviceVertexBuffer_;
-
-        std::shared_ptr<Buffer> deviceIndexBuffer_;
-
         std::unique_ptr<Buffer> hostUniformBuffer_;
         std::unique_ptr<Buffer> deviceUniformBuffer_;
 
         vk::DescriptorPool descriptorPool_;
-        std::vector<vk::DescriptorSet> sets_;
+        std::vector<vk::DescriptorSet> vpSets_;
 
         struct VP {
             glm::mat4 view = glm::mat4(1.0f);
             glm::mat4 project = glm::mat4(1.0f);
         } vp;
         float fov_ = 90;
-
-        std::vector<Vertex> &vertices = const_cast<std::vector<Vertex> &>(cube_vertices);
-        std::vector<uint32_t> &indices = const_cast<std::vector<uint32_t> &>(cube_indices);
 
         void initVP();
 
@@ -67,16 +55,15 @@ namespace schoo {
 
         void createSampler();
 
-
         void loadUniformData();
 
-        void loadModel();
+        void loadModels();
 
         void createDescriptorPool();
 
         void allocateSets();
 
-        void writeSets();
+        void updateSets();
 
     };
 }

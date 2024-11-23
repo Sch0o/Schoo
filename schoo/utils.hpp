@@ -4,6 +4,7 @@
 #include<vulkan/vulkan.hpp>
 #include <fstream>
 #include <iostream>
+#include<iomanip>
 
 namespace schoo {
     std::string ReadWholeFile(const std::string &filename);

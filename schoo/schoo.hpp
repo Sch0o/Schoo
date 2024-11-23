@@ -13,8 +13,10 @@ namespace schoo{
         const uint32_t height = 1200;
 
         float deltaTime=0.0f;
+        //pre frame
         float lastTime=0.0f;
 
+        //pre compute frame
         float lastSec=0.0f;
         int frameNums=0;
 
