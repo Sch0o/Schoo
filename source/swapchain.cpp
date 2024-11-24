@@ -123,7 +123,7 @@ namespace schoo {
             createInfo.setAttachments(attachments)
             .setWidth(width)
             .setHeight(height)
-            .setRenderPass(Context::GetInstance().renderProcess->renderPass)
+            .setRenderPass(Context::GetInstance().renderProcess->meshRenderPass)
             .setLayers(1);
             frameBuffers[i]=Context::GetInstance().device.createFramebuffer(createInfo);
         }

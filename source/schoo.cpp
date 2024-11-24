@@ -46,11 +46,13 @@ namespace schoo {
         context.swapchain->CreateFramebuffers();
         context.renderProcess->CreatePipeline();
         context.InitRenderer();
+        context.InitUI();
     }
 
     void Schoo::Quit() {
         auto &context = Context::GetInstance();
         context.device.waitIdle();
+        context.DestroyUI();
         context.DestroyRenderer();
         context.DestroyCommandManager();
         context.DestroyRenderProcess();
@@ -63,18 +65,18 @@ namespace schoo {
     }
 
     void Schoo::TickLogic(){
-        float currentTime=glfwGetTime();
-        deltaTime=currentTime-lastTime;
-        lastTime=currentTime;
-
-        if(currentTime-lastSec>1){
-            std::cout<<"FPS: "<<frameNums<<"  ";
-            std::cout<<std::fixed<<std::setprecision(2)<<"Frame Times: "<<deltaTime*1000<<"ms"<<std::endl;
-            lastSec=currentTime;
-            frameNums=0;
-        }
-        else
-            frameNums++;
+//        float currentTime=glfwGetTime();
+//        deltaTime=currentTime-lastTime;
+//        lastTime=currentTime;
+//
+//        if(currentTime-lastSec>1){
+//            std::cout<<"FPS: "<<frameNums<<"  ";
+//            std::cout<<std::fixed<<std::setprecision(2)<<"Frame Times: "<<deltaTime*1000<<"ms"<<std::endl;
+//            lastSec=currentTime;
+//            frameNums=0;
+//        }
+//        else
+//            frameNums++;
 
         Context::GetInstance().renderer->UpdateViewMatrix();
     }

@@ -6,7 +6,8 @@ namespace schoo{
     public:
         vk::Pipeline pipeline;
         vk::PipelineLayout layout;
-        vk::RenderPass renderPass;
+        vk::RenderPass meshRenderPass;
+        vk::RenderPass uiRenderPass;
         vk::DescriptorSetLayout vpSetLayout;
         vk::DescriptorSetLayout modelSetLayout;
 
@@ -18,5 +19,7 @@ namespace schoo{
     private:
         vk::PipelineLayout createLayout();
         void createSetLayout();
+        void createGuiRenderPass();
+        void createMeshRenderPass();
     };
 }

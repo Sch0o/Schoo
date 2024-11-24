@@ -145,4 +145,11 @@ namespace schoo {
     void Context::InitRenderProcess() {
         renderProcess.reset(new RenderProcess());
     }
+    void Context::InitUI(){
+        ui.reset(new WindowGui());
+    }
+}
+
+void schoo::Context::DestroyUI() {
+    ui.reset();
 }

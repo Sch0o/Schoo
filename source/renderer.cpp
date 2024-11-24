@@ -36,7 +36,7 @@ namespace schoo {
         device.destroySampler(sampler_);
 
 
-        device.destroyDescriptorPool(descriptorPool_);
+        device.destroyDescriptorPool(descriptorPool);
 
 
         hostUniformBuffer_.reset();
@@ -47,6 +47,7 @@ namespace schoo {
             commandManager->FreeCommandbuffers(cmdBuffers_[i]);
             device.destroySemaphore(imageAvaliables_[i]);
             device.destroySemaphore(imageDrawFinshs_[i]);
+            device.destroySemaphore(uiDrawFinshs_[i]);
             device.destroyFence(cmdAvaliableFences_[i]);
         }
 
@@ -57,6 +58,7 @@ namespace schoo {
         auto &device = Context::GetInstance().device;
         auto &swapchain = Context::GetInstance().swapchain;
         auto &renderProcess = Context::GetInstance().renderProcess;
+        auto &ui=Context::GetInstance().ui;
 
 
         if (Context::GetInstance().device.waitForFences(cmdAvaliableFences_[currentFrame], true,
@@ -72,7 +74,7 @@ namespace schoo {
         if (result.result != vk::Result::eSuccess) {
             throw std::runtime_error("acquire next image failed");
         }
-        auto imageIndex = result.value;
+        imageIndex = result.value;
 
         cmdBuffers_[currentFrame].reset();
         vk::CommandBufferBeginInfo beginInfo;
@@ -85,7 +87,7 @@ namespace schoo {
             std::array<vk::ClearValue, 2> clearValues;
             clearValues[0].color = vk::ClearColorValue(std::array<float, 4>{0.1f, 0.1f, 0.1f, 1.0f});
             clearValues[1].depthStencil = vk::ClearDepthStencilValue(0.99f, 0);
-            renderPassBeginInfo.setRenderPass(renderProcess->renderPass)
+            renderPassBeginInfo.setRenderPass(renderProcess->meshRenderPass)
                     .setRenderArea(area)
                     .setFramebuffer(swapchain->frameBuffers[imageIndex])
                     .setClearValues(clearValues);
@@ -105,21 +107,30 @@ namespace schoo {
                 cmdBuffers_[currentFrame].drawIndexed(model->indices.size(), 1, 0, 0, 0);
             }
             cmdBuffers_[currentFrame].endRenderPass();
+
         }
         cmdBuffers_[currentFrame].end();
 
+        ui->Render();
         vk::SubmitInfo submitInfo;
         std::array<vk::PipelineStageFlags, 1> waitStages = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
         submitInfo.setCommandBuffers(cmdBuffers_[currentFrame])
                 .setWaitSemaphores(imageAvaliables_[currentFrame])
                 .setSignalSemaphores(imageDrawFinshs_[currentFrame])
                 .setWaitDstStageMask(waitStages);
+        Context::GetInstance().graphicsQueue.submit(submitInfo);
+
+        submitInfo.setCommandBuffers(ui->cmdBuffers_[currentFrame])
+                .setWaitSemaphores(imageDrawFinshs_[currentFrame])
+                .setSignalSemaphores(uiDrawFinshs_[currentFrame])
+                .setWaitDstStageMask(waitStages);
         Context::GetInstance().graphicsQueue.submit(submitInfo, cmdAvaliableFences_[currentFrame]);
+
 
         vk::PresentInfoKHR presentInfoKhr;
         presentInfoKhr.setImageIndices(imageIndex)
                 .setSwapchains(swapchain->swapchain)
-                .setWaitSemaphores(imageDrawFinshs_[currentFrame]);
+                .setWaitSemaphores(uiDrawFinshs_[currentFrame]);
         if (Context::GetInstance().presentQueue.presentKHR(presentInfoKhr) != vk::Result::eSuccess) {
             std::cout << "image present failed" << std::endl;
         }
@@ -130,11 +141,13 @@ namespace schoo {
     void Renderer::createSemaphores() {
         imageAvaliables_.resize(frameNums);
         imageDrawFinshs_.resize(frameNums);
+        uiDrawFinshs_.resize(frameNums);
 
         vk::SemaphoreCreateInfo createInfo;
         for (int i = 0; i < frameNums; i++) {
             imageAvaliables_[i] = Context::GetInstance().device.createSemaphore(createInfo);
             imageDrawFinshs_[i] = Context::GetInstance().device.createSemaphore(createInfo);
+            uiDrawFinshs_[i]=Context::GetInstance().device.createSemaphore(createInfo);
         }
     }
 
@@ -184,14 +197,14 @@ namespace schoo {
                 .setDescriptorCount(models.size());
         createInfo.setMaxSets(models.size() + 1)
                 .setPoolSizes(poolSizes);
-        descriptorPool_ = Context::GetInstance().device.createDescriptorPool(createInfo);
+        descriptorPool = Context::GetInstance().device.createDescriptorPool(createInfo);
     }
 
     void Renderer::allocateSets() {
         std::vector<vk::DescriptorSetLayout> vpSetLayouts(1, Context::GetInstance().renderProcess->vpSetLayout);
         vk::DescriptorSetAllocateInfo allocateInfo;
         allocateInfo.setSetLayouts(vpSetLayouts)
-                .setDescriptorPool(descriptorPool_)
+                .setDescriptorPool(descriptorPool)
                 .setDescriptorSetCount(1);
         vpSets_ = Context::GetInstance().device.allocateDescriptorSets(allocateInfo);
 
@@ -200,7 +213,7 @@ namespace schoo {
                                                                  Context::GetInstance().renderProcess->modelSetLayout);
             vk::DescriptorSetAllocateInfo allocateInfoModel;
             allocateInfoModel.setSetLayouts(modelSetLayouts)
-                    .setDescriptorPool(descriptorPool_)
+                    .setDescriptorPool(descriptorPool)
                     .setDescriptorSetCount(1);
             model->sets = Context::GetInstance().device.allocateDescriptorSets(allocateInfoModel);
         }

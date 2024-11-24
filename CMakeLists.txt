@@ -3,6 +3,7 @@ project(Schoo LANGUAGES CXX DESCRIPTION "a 3D Renderer made by schoo")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
+set(IMGUI_DIR "${PROJECT_SOURCE_DIR}/external/imgui")
 
 #set(GLSLC_PROGRAM "D:/APP/VulkanSDK/Bin/glslc.exe")
 find_package(Vulkan REQUIRED COMPONENTS glslc)
@@ -19,7 +20,8 @@ execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shader/shader.frag 
 
 
 aux_source_directory(source SRC)
-add_library(schoo_lib STATIC ${SRC})
+file(GLOB IMGUI_SOURCES ${IMGUI_DIR}/*.cpp)
+add_library(schoo_lib STATIC ${SRC} ${IMGUI_SOURCES})
 target_include_directories(schoo_lib PUBLIC
         ${PROJECT_SOURCE_DIR}
         ${PROJECT_SOURCE_DIR}/external

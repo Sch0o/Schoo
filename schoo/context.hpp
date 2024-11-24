@@ -12,6 +12,7 @@
 #include "renderProcess.hpp"
 #include "renderer.hpp"
 #include "command.hpp"
+#include "ui.hpp"
 
 
 namespace schoo {
@@ -45,6 +46,7 @@ namespace schoo {
         std::unique_ptr<RenderProcess> renderProcess;
         std::unique_ptr<Renderer> renderer;
         std::unique_ptr<Command> commandManager;
+        std::unique_ptr<WindowGui> ui;
 
 
         void DestroyRenderProcess();
@@ -62,6 +64,11 @@ namespace schoo {
         void DestroyCommandManager();
 
         void InitRenderProcess();
+
+        void InitUI();
+
+        void DestroyUI();
+
 
     private:
         Context(schoo::Window &window);

@@ -19,14 +19,20 @@ namespace schoo {
 
         void UpdateViewMatrix();
 
+        vk::DescriptorPool descriptorPool;
+
+        uint32_t currentFrame = 0;
+        uint32_t imageIndex=0;
+
     private:
         std::vector<std::shared_ptr<Model>>models;
         vk::Sampler sampler_;
 
         uint32_t frameNums;
-        uint32_t currentFrame = 0;
+
         std::vector<vk::Semaphore> imageAvaliables_;
         std::vector<vk::Semaphore> imageDrawFinshs_;
+        std::vector<vk::Semaphore> uiDrawFinshs_;
         std::vector<vk::Fence> cmdAvaliableFences_;
 
         std::vector<vk::CommandBuffer> cmdBuffers_;
@@ -34,7 +40,7 @@ namespace schoo {
         std::unique_ptr<Buffer> hostUniformBuffer_;
         std::unique_ptr<Buffer> deviceUniformBuffer_;
 
-        vk::DescriptorPool descriptorPool_;
+
         std::vector<vk::DescriptorSet> vpSets_;
 
         struct VP {
