@@ -1,4 +1,4 @@
-#include"schoo/camera.hpp"
+#include"schoo/render/camera.hpp"
 #include "external/glm/gtc/matrix_transform.hpp"
 namespace schoo{
     Camera::Camera(glm::vec3 position, glm::vec3 target, glm::vec3 worldUp):

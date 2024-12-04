@@ -1,12 +1,13 @@
 #pragma once
 
 #include"vulkan/vulkan.hpp"
-#include"buffer.hpp"
+#include"schoo/render/buffer.hpp"
 #include"glm/glm.hpp"
-#include "vertexData.hpp"
-#include"texture.hpp"
-#include"model.hpp"
-
+#include "schoo/render/vertexData.hpp"
+#include"schoo/render/texture.hpp"
+#include"schoo/render/model.hpp"
+#include"schoo/render/passes/mesh_pass.hpp"
+#include"schoo/render/passes/ui_pass.hpp"
 
 namespace schoo {
     class Renderer final {
@@ -17,16 +18,14 @@ namespace schoo {
 
         void Render();
 
-        void UpdateViewMatrix();
-
-        vk::DescriptorPool descriptorPool;
 
         uint32_t currentFrame = 0;
         uint32_t imageIndex=0;
 
     private:
+        std::shared_ptr<MeshPass>mesh_pass;
+        std::shared_ptr<UIPass>ui_pass;
         std::vector<std::shared_ptr<Model>>models;
-        vk::Sampler sampler_;
 
         uint32_t frameNums;
 
@@ -49,27 +48,11 @@ namespace schoo {
         } vp;
         float fov_ = 90;
 
-        void initVP();
-
-        void createCmdBuffers();
-
         void createSemaphores();
 
         void createFences();
 
-        void createUniformBuffer();
-
-        void createSampler();
-
-        void loadUniformData();
-
         void loadModels();
-
-        void createDescriptorPool();
-
-        void allocateSets();
-
-        void updateSets();
 
     };
 }

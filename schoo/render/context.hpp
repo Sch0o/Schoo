@@ -3,16 +3,15 @@
 #include "vulkan/vulkan.hpp"
 #include<iostream>
 #include <optional>
-#include"schoo/window.hpp"
-#include "schoo/swapchain.hpp"
+#include"window.hpp"
+#include "swapchain.hpp"
 
 #define GLFW_INCLUDE_VULKAN
 
 #include"GLFW/glfw3.h"
-#include "renderProcess.hpp"
-#include "renderer.hpp"
-#include "command.hpp"
-#include "ui.hpp"
+#include"renderer.hpp"
+#include "schoo/render/command.hpp"
+
 
 
 namespace schoo {
@@ -43,13 +42,10 @@ namespace schoo {
         vk::Queue presentQueue;
         vk::SurfaceKHR surface;
         std::unique_ptr<Swapchain> swapchain;
-        std::unique_ptr<RenderProcess> renderProcess;
         std::unique_ptr<Renderer> renderer;
         std::unique_ptr<Command> commandManager;
-        std::unique_ptr<WindowGui> ui;
 
 
-        void DestroyRenderProcess();
 
         void DestroyRenderer();
 
@@ -62,12 +58,6 @@ namespace schoo {
         void InitCommandManager();
 
         void DestroyCommandManager();
-
-        void InitRenderProcess();
-
-        void InitUI();
-
-        void DestroyUI();
 
 
     private:

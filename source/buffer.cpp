@@ -1,5 +1,5 @@
-#include"schoo/buffer.hpp"
-#include"schoo/context.hpp"
+#include"schoo/render/buffer.hpp"
+#include"schoo/render/context.hpp"
 
 namespace schoo {
     Buffer::Buffer(size_t size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags property) {

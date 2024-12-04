@@ -4,10 +4,10 @@
 #pragma once
 
 #include<iostream>
-#include"camera.hpp"
+#include"schoo/render/camera.hpp"
 namespace schoo{
 
-    class Schoo {
+    class SchooEngine{
     public:
         const uint32_t width = 1600;
         const uint32_t height = 1200;
@@ -36,12 +36,12 @@ namespace schoo{
 
         void InitCamera();
 
-        static Schoo&GetInstance();
+        static SchooEngine&GetInstance();
 
-        ~Schoo();
+        ~SchooEngine();
     private:
-        Schoo();
-        static std::unique_ptr<Schoo>instance_;
+        SchooEngine()=default;
+        static std::unique_ptr<SchooEngine>instance_;
     };
 
 

@@ -1,6 +1,6 @@
-#include"schoo/texture.hpp"
-#include"schoo/buffer.hpp"
-#include"schoo/context.hpp"
+#include"schoo/render/texture.hpp"
+#include"schoo/render/buffer.hpp"
+#include"schoo/render/context.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 

@@ -1,4 +1,4 @@
-#include"schoo/context.hpp"
+#include"schoo/render/context.hpp"
 
 
 namespace schoo {
@@ -122,9 +122,6 @@ namespace schoo {
         swapchain.reset();
     }
 
-    void Context::DestroyRenderProcess() {
-        renderProcess.reset();
-    }
 
     void Context::InitRenderer() {
         renderer.reset(new Renderer());
@@ -142,14 +139,5 @@ namespace schoo {
         commandManager.reset();
     }
 
-    void Context::InitRenderProcess() {
-        renderProcess.reset(new RenderProcess());
-    }
-    void Context::InitUI(){
-        ui.reset(new WindowGui());
-    }
 }
 
-void schoo::Context::DestroyUI() {
-    ui.reset();
-}

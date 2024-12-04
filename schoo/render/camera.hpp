@@ -1,4 +1,4 @@
-#include<glm/glm.hpp>
+#include"external/glm/glm.hpp"
 namespace schoo{
     class Camera{
     public:

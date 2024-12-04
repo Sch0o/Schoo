@@ -1,7 +1,7 @@
 #include <experimental/vector>
-#include"schoo/window.hpp"
-#include"schoo/schoo.hpp"
-#include"schoo/context.hpp"
+#include"schoo/render/window.hpp"
+#include"schoo/engine.hpp"
+#include"schoo/render/context.hpp"
 
 
 namespace schoo {
@@ -74,7 +74,7 @@ namespace schoo {
 
     void Window::mouse_move_callback(GLFWwindow *window, double xPos, double yPos) {
         //std::cout<<"xPos: "<<xPos<<"yPos: "<<yPos<<std::endl;
-        auto camera = Schoo::GetInstance().camera;
+        auto camera = SchooEngine::GetInstance().camera;
         float deltaX, deltaY;
         if (firstMouse) {
             firstMouse = false;
@@ -94,8 +94,8 @@ namespace schoo {
         if (key == GLFW_KEY_ESCAPE) {
             glfwSetWindowShouldClose(window, true);
         }
-        auto camera = Schoo::GetInstance().camera;
-        float deltaTime = Schoo::GetInstance().deltaTime;
+        auto camera = SchooEngine::GetInstance().camera;
+        float deltaTime = SchooEngine::GetInstance().deltaTime;
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
             camera->MoveForward(deltaTime);
         }

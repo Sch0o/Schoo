@@ -1,5 +1,5 @@
 #include<iostream>
-#include"buffer.hpp"
+#include"schoo/render/buffer.hpp"
 #include"texture.hpp"
 
 namespace schoo{

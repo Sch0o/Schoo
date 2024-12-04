@@ -1,6 +1,6 @@
-#include"schoo/swapchain.hpp"
-#include"schoo/context.hpp"
-#include"schoo/utils.hpp"
+#include"schoo/render/swapchain.hpp"
+#include"schoo/render/context.hpp"
+#include"schoo/render/utils.hpp"
 
 namespace schoo {
     Swapchain::Swapchain(uint32_t w, uint32_t h) {
@@ -44,7 +44,6 @@ namespace schoo {
     Swapchain::~Swapchain() {
         auto&device=Context::GetInstance().device;
         for(uint32_t i=0;i<imageViews.size();i++){
-            device.destroyFramebuffer(frameBuffers[i]);
             device.destroyImageView(imageViews[i]);
         }
 
@@ -112,20 +111,6 @@ namespace schoo {
 
             imageViews[i]=Context::GetInstance().device.createImageView(createInfo);
 
-        }
-    }
-
-    void Swapchain::CreateFramebuffers() {
-        frameBuffers.resize(imageViews.size());
-        for(int i=0;i<frameBuffers.size();i++){
-            vk::FramebufferCreateInfo createInfo;
-            std::array<vk::ImageView,2>attachments={imageViews[i],depthImageView};
-            createInfo.setAttachments(attachments)
-            .setWidth(width)
-            .setHeight(height)
-            .setRenderPass(Context::GetInstance().renderProcess->meshRenderPass)
-            .setLayers(1);
-            frameBuffers[i]=Context::GetInstance().device.createFramebuffer(createInfo);
         }
     }
 

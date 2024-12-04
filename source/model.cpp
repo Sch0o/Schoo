@@ -1,6 +1,6 @@
-#include"model.hpp"
-#include"context.hpp"
-#include"utils.hpp"
+#include"schoo/render/model.hpp"
+#include"schoo/render/context.hpp"
+#include"schoo/render/utils.hpp"
 #define  TINYOBJLOADER_IMPLEMENTATION
 #include"tinyobjloader/tiny_obj_loader.h"
 namespace schoo {

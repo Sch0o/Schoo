@@ -1,5 +1,5 @@
-#include "schoo/utils.hpp"
-#include"schoo/context.hpp"
+#include "schoo/render/utils.hpp"
+#include"schoo/render/context.hpp"
 #include "filesystem"
 
 namespace schoo{

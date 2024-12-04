@@ -1,10 +1,9 @@
-#include"schoo/schoo.hpp"
+#include"schoo/engine.hpp"
 
 int main() {
-    schoo::Schoo::Init();
-    auto &app = schoo::Schoo::GetInstance();
+    schoo::SchooEngine::Init();
+    auto &app = schoo::SchooEngine::GetInstance();
     app.TickMain();
-    schoo::Schoo::Quit();
-
+    schoo::SchooEngine::Quit();
     return 1;
 }

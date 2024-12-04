@@ -1,15 +1,15 @@
 #pragma once
 #include<iostream>
 #include"texture.hpp"
-#include"schoo/vertexData.hpp"
-#include"schoo/buffer.hpp"
+#include"schoo/render/vertexData.hpp"
+#include"schoo/render/buffer.hpp"
 
 
 #include<unordered_map>
 
 #define GLM_ENABLE_EXPERIMENTAL
 
-#include <glm/gtx/hash.hpp>
+#include "external/glm/gtx/hash.hpp"
 
 namespace std{
     template<>

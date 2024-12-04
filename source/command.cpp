@@ -1,5 +1,5 @@
-#include"schoo/command.hpp"
-#include"schoo/context.hpp"
+#include"schoo/render/command.hpp"
+#include"schoo/render/context.hpp"
 
 namespace schoo {
     Command::Command() {

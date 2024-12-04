@@ -21,7 +21,6 @@ namespace schoo{
 
         std::vector<vk::Image>images;
         std::vector<vk::ImageView>imageViews;
-        std::vector<vk::Framebuffer>frameBuffers;
 
         vk::Image depthImage;
         vk::DeviceMemory depthImageMemory;
@@ -30,7 +29,6 @@ namespace schoo{
         SwapchainInfo swapchainInfo;
         void queryInfo(uint32_t w,uint32_t h);
 
-        void CreateFramebuffers();
 
     private:
         void getImages();
