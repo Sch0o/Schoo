@@ -10,7 +10,9 @@ namespace schoo {
     struct Vertex {
         glm::vec3 pos;
         glm::vec3 color;
+        glm::vec3 normal;
         glm::vec2 texCoord;
+
 
         bool operator==(const Vertex&other)const{
             return pos==other.pos&&color==other.color&&texCoord==other.texCoord;
@@ -24,8 +26,8 @@ namespace schoo {
             return bindingDescription;
         }
 
-        static std::array<vk::VertexInputAttributeDescription, 3> getAttributeDescriptions() {
-            std::array<vk::VertexInputAttributeDescription, 3> attributeDescriptions{};
+        static std::array<vk::VertexInputAttributeDescription, 4> getAttributeDescriptions() {
+            std::array<vk::VertexInputAttributeDescription, 4> attributeDescriptions{};
 
             attributeDescriptions[0].setFormat(vk::Format::eR32G32B32Sfloat)
                     .setBinding(0)
@@ -37,10 +39,15 @@ namespace schoo {
                     .setLocation(1)
                     .setOffset(offsetof(Vertex, color));
 
-            attributeDescriptions[2].setFormat(vk::Format::eR32G32Sfloat)
+            attributeDescriptions[2].setFormat(vk::Format::eR32G32B32Sfloat)
             .setBinding(0)
             .setLocation(2)
-            .setOffset(offsetof(Vertex,texCoord));
+            .setOffset(offsetof(Vertex,normal));
+
+            attributeDescriptions[3].setFormat(vk::Format::eR32G32Sfloat)
+                    .setBinding(0)
+                    .setLocation(3)
+                    .setOffset(offsetof(Vertex,texCoord));
             return attributeDescriptions;
         }
     };

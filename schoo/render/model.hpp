@@ -49,9 +49,6 @@ namespace schoo {
         void createVertexBuffer();
         void createModelMatBuffer();
         void createIndexBuffer();
-//        void loadIndexData();
-//        void loadVertexData();
-//        void loadModelMatData();
         void loadDataHostToDevice(const std::shared_ptr<Buffer>&hostBuffer,
                                   const std::shared_ptr<Buffer>&DeviceBuffer,
                                   const void*src);

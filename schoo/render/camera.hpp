@@ -10,6 +10,7 @@ namespace schoo{
         void MoveForward(float delatTime);
         void MoveRight(float delatTime);
         void MoveUp(float deltaTime);
+        glm::vec3 GetPosition();
     private:
         glm::vec3 position_;
         glm::vec3 worldUp_;
@@ -23,6 +24,7 @@ namespace schoo{
         float moveSpeed=10.0f;
 
         void updateCameraVectors();
+
 
 
     };

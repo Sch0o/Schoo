@@ -7,8 +7,6 @@ namespace schoo{
         vk::Buffer buffer;
         vk::DeviceMemory memory;
         size_t size;
-//        void *data;
-
         Buffer(size_t size1,vk::BufferUsageFlags usage,vk::MemoryPropertyFlags property);
         ~Buffer();
 

@@ -3,6 +3,7 @@
 #include "render/renderPass.hpp"
 #include"render/model.hpp"
 #include"render/buffer.hpp"
+#include"render/light.hpp"
 
 namespace schoo {
     class MeshPass : public RenderPass {
@@ -20,8 +21,15 @@ namespace schoo {
 
         std::vector<std::shared_ptr<Model>> renderResource;
 
+        struct UniformBuffer{
+            std::shared_ptr<Buffer>stagingBuffer;
+            std::shared_ptr<Buffer>deviceBuffer;
+        };
+        UniformBuffer vpUniformBuffer;
+        UniformBuffer constantUniformBuffer;
         std::shared_ptr<Buffer> hostUniformBuffer;
         std::shared_ptr<Buffer> deviceUniformBuffer;
+
 
         std::vector<vk::CommandBuffer> cmdBuffers;
 
@@ -32,6 +40,12 @@ namespace schoo {
         } vp;
 
         float fov = 90;
+
+        struct UniformConstants {
+            alignas(16) glm::vec3 lightPos;
+            alignas(16) glm::vec3 lightColor;
+            alignas(16) glm::vec3 viewPos;
+        }uniformConstants;
 
         vk::Sampler sampler;
 
@@ -66,6 +80,6 @@ namespace schoo {
 
         void UpdateViewMatrix();
 
-        void initVP();
+        void initUniform();
     };
 }

@@ -56,6 +56,12 @@ namespace schoo {
                 };
                 vertex.color = {1.0f, 1.0f, 1.0f};
 
+                vertex.normal={
+                        attrib.normals[3 * index.normal_index + 0],
+                        attrib.normals[3 * index.normal_index + 1],
+                        attrib.normals[3 * index.normal_index + 2]
+                };
+
                 if (uniqueVertices.count(vertex) == 0) {
                     uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
                     vertices.push_back(vertex);
@@ -127,27 +133,5 @@ namespace schoo {
 
     }
 
-//    void Model::loadVertexData() {
-//        void *data = Context::GetInstance().device.mapMemory(hostVertexBuffer_->memory, 0, hostVertexBuffer_->size);
-//        memcpy(data, vertices.data(), hostVertexBuffer_->size);
-//        Context::GetInstance().device.unmapMemory(hostVertexBuffer_->memory);
-//
-//        copyBuffer(hostVertexBuffer_->buffer, vertexBuffer->buffer, hostVertexBuffer_->size, 0, 0);
-//    }
-
-//    void Model::loadIndexData() {
-//        void *data = Context::GetInstance().device.mapMemory(hostIndexBuffer_->memory, 0, hostIndexBuffer_->size);
-//        memcpy(data, indices.data(), hostIndexBuffer_->size);
-//        Context::GetInstance().device.unmapMemory(hostIndexBuffer_->memory);
-//
-//        copyBuffer(hostIndexBuffer_->buffer, indexBuffer->buffer, hostIndexBuffer_->size, 0, 0);
-//    }
-//    void Model::loadModelMatData() {
-//        void *data = Context::GetInstance().device.mapMemory(hostIndexBuffer_->memory, 0, hostIndexBuffer_->size);
-//        memcpy(data, indices.data(), hostIndexBuffer_->size);
-//        Context::GetInstance().device.unmapMemory(hostIndexBuffer_->memory);
-//
-//        copyBuffer(hostIndexBuffer_->buffer, indexBuffer->buffer, hostIndexBuffer_->size, 0, 0);
-//    }
 
 }

@@ -17,7 +17,7 @@ namespace schoo {
         allocateSets();
         updateSets();
         createCmdBuffer();
-        initVP();
+        initUniform();
     }
 
     MeshPass::~MeshPass() {
@@ -26,8 +26,8 @@ namespace schoo {
 
         device.destroySampler(sampler);
         device.destroyDescriptorPool(descriptorPool);
-        hostUniformBuffer.reset();
-        deviceUniformBuffer.reset();
+        vpUniformBuffer.stagingBuffer.reset();
+        vpUniformBuffer.deviceBuffer.reset();
         for (int i=0;i<2;i++) {
 
             commandManager->FreeCommandbuffers(cmdBuffers[i]);
@@ -131,6 +131,7 @@ namespace schoo {
 
     void MeshPass::UpdateViewMatrix() {
         vp.view = SchooEngine::GetInstance().camera->GetViewMatrix();
+        
         loadUniformData();
     }
 
@@ -236,14 +237,18 @@ namespace schoo {
         createInfoModel.setBindings(bindingsModel);
         modelSetLayout = Context::GetInstance().device.createDescriptorSetLayout(createInfoModel);
 
-        //vp matrix
+        //vp matrix and some constant
         vk::DescriptorSetLayoutCreateInfo createInfoVP;
-        std::array<vk::DescriptorSetLayoutBinding, 1> bindingsVP;
-        bindingsVP[0].setBinding(0)
+        std::array<vk::DescriptorSetLayoutBinding, 2> bindings2;
+        bindings2[0].setBinding(0)
                 .setDescriptorType(vk::DescriptorType::eUniformBuffer)
                 .setStageFlags(vk::ShaderStageFlagBits::eVertex)
                 .setDescriptorCount(1);
-        createInfoVP.setBindings(bindingsVP);
+        bindings2[1].setBinding(1)
+        .setDescriptorType(vk::DescriptorType::eUniformBuffer)
+        .setStageFlags(vk::ShaderStageFlagBits::eFragment)
+        .setDescriptorCount(1);
+        createInfoVP.setBindings(bindings2);
         vpSetLayout = Context::GetInstance().device.createDescriptorSetLayout(createInfoVP);
     }
 
@@ -276,23 +281,32 @@ namespace schoo {
                     .setDescriptorSetCount(1);
             model->sets = Context::GetInstance().device.allocateDescriptorSets(allocateInfoModel);
         }
-
     }
 
     void MeshPass::updateSets() {
         //vp
         vk::DescriptorBufferInfo vpBufferInfo;
         vpBufferInfo.setOffset(0)
-                .setBuffer(deviceUniformBuffer->buffer)
-                .setRange(deviceUniformBuffer->size);
-        std::array<vk::WriteDescriptorSet, 1> vpWriter;
-        vpWriter[0].setDescriptorCount(1)
+                .setBuffer(vpUniformBuffer.deviceBuffer->buffer)
+                .setRange(vpUniformBuffer.deviceBuffer->size);
+        std::array<vk::WriteDescriptorSet, 2> Writers1;
+        Writers1[0].setDescriptorCount(1)
                 .setDescriptorType(vk::DescriptorType::eUniformBuffer)
                 .setBufferInfo(vpBufferInfo)
                 .setDstBinding(0)
                 .setDstSet(vpSets[0])
                 .setDstArrayElement(0);
-        Context::GetInstance().device.updateDescriptorSets(vpWriter, {});
+        vk::DescriptorBufferInfo constantBufferInfo;
+        constantBufferInfo.setOffset(0)
+                .setBuffer(constantUniformBuffer.deviceBuffer->buffer)
+                .setRange(constantUniformBuffer.deviceBuffer->size);
+        Writers1[1].setDescriptorCount(1)
+                .setDescriptorType(vk::DescriptorType::eUniformBuffer)
+                .setBufferInfo(constantBufferInfo)
+                .setDstBinding(1)
+                .setDstSet(vpSets[0])
+                .setDstArrayElement(0);
+        Context::GetInstance().device.updateDescriptorSets(Writers1, {});
         //model and sampler
         std::array<vk::WriteDescriptorSet, 2> modelWriters;
         for (auto &model: renderResource) {
@@ -354,32 +368,51 @@ namespace schoo {
     void MeshPass::createUniformBuffer() {
         size_t bufferSize = sizeof(vp);
         //std::cout << "UniformSize:"<<bufferSize<<std::endl;
-        hostUniformBuffer.reset(new Buffer(bufferSize,
+        vpUniformBuffer.stagingBuffer.reset(new Buffer(bufferSize,
                                            vk::BufferUsageFlagBits::eTransferSrc,
                                            vk::MemoryPropertyFlagBits::eHostCoherent |
                                            vk::MemoryPropertyFlagBits::eHostVisible));
 
-        deviceUniformBuffer.reset(new Buffer(bufferSize,
+        vpUniformBuffer.deviceBuffer.reset(new Buffer(bufferSize,
+                                             vk::BufferUsageFlagBits::eUniformBuffer |
+                                             vk::BufferUsageFlagBits::eTransferDst,
+                                             vk::MemoryPropertyFlagBits::eDeviceLocal));
+        constantUniformBuffer.stagingBuffer.reset(new Buffer(bufferSize,
+                                           vk::BufferUsageFlagBits::eTransferSrc,
+                                           vk::MemoryPropertyFlagBits::eHostCoherent |
+                                           vk::MemoryPropertyFlagBits::eHostVisible));
+
+        constantUniformBuffer.deviceBuffer.reset(new Buffer(bufferSize,
                                              vk::BufferUsageFlagBits::eUniformBuffer |
                                              vk::BufferUsageFlagBits::eTransferDst,
                                              vk::MemoryPropertyFlagBits::eDeviceLocal));
     }
 
     void MeshPass::loadUniformData() {
-        void *data = Context::GetInstance().device.mapMemory(hostUniformBuffer->memory, 0, hostUniformBuffer->size);
-        memcpy(data, &vp, hostUniformBuffer->size);
-        Context::GetInstance().device.unmapMemory(hostUniformBuffer->memory);
+        void *data = Context::GetInstance().device.mapMemory(vpUniformBuffer.stagingBuffer->memory, 0, vpUniformBuffer.stagingBuffer->size);
+        memcpy(data, &vp, vpUniformBuffer.stagingBuffer->size);
+        Context::GetInstance().device.unmapMemory(vpUniformBuffer.stagingBuffer->memory);
+        copyBuffer(vpUniformBuffer.stagingBuffer->buffer, vpUniformBuffer.deviceBuffer->buffer, vpUniformBuffer.stagingBuffer->size, 0, 0);
 
-        copyBuffer(hostUniformBuffer->buffer, deviceUniformBuffer->buffer, hostUniformBuffer->size, 0, 0);
+        data = Context::GetInstance().device.mapMemory(constantUniformBuffer.stagingBuffer->memory, 0, constantUniformBuffer.stagingBuffer->size);
+        memcpy(data, &uniformConstants, constantUniformBuffer.stagingBuffer->size);
+        Context::GetInstance().device.unmapMemory(constantUniformBuffer.stagingBuffer->memory);
+        copyBuffer( constantUniformBuffer.stagingBuffer->buffer,  constantUniformBuffer.deviceBuffer->buffer,  constantUniformBuffer.stagingBuffer->size, 0, 0);
     }
 
-    void MeshPass::initVP() {
+    void MeshPass::initUniform(){
         vp.view = SchooEngine::GetInstance().camera->GetViewMatrix();
 
         uint32_t width = Context::GetInstance().swapchain->width;
         uint32_t height = Context::GetInstance().swapchain->height;
         vp.project = glm::perspective(glm::radians(fov), width / (height * 1.0f), 0.1f, 100.0f);
         vp.project[1][1] *= -1;
+        
+        uniformConstants={glm::vec3(5,5,5),
+                          glm::vec3(1.0,1.0,1.0),
+                          SchooEngine::GetInstance().camera->GetPosition()
+        };
+
     }
 
     void MeshPass::createFrameBuffers() {
