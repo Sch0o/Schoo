@@ -3,6 +3,7 @@
 #include "render/renderPass.hpp"
 #include"render/model.hpp"
 #include"render/buffer.hpp"
+#include"render/light.hpp"
 
 namespace schoo {
     class MeshPass : public RenderPass {
@@ -20,18 +21,32 @@ namespace schoo {
 
         std::vector<std::shared_ptr<Model>> renderResource;
 
+        struct UniformBuffer{
+            std::shared_ptr<Buffer>stagingBuffer;
+            std::shared_ptr<Buffer>deviceBuffer;
+        };
+        struct UniformDataoffscreen{
+            glm::mat4 depthMVP;
+        };
+        struct UniformConstants {
+            glm::mat4 view;
+            glm::mat4 projection;
+            glm::vec4 lightPos;
+            glm::vec4 lightColor;
+            glm::vec4 viewPos;
+        }uniformConstants;
+
+        UniformBuffer constant;
+
         std::shared_ptr<Buffer> hostUniformBuffer;
         std::shared_ptr<Buffer> deviceUniformBuffer;
 
+
         std::vector<vk::CommandBuffer> cmdBuffers;
 
-
-        struct VP {
-            glm::mat4 view = glm::mat4(1.0f);
-            glm::mat4 project = glm::mat4(1.0f);
-        } vp;
-
         float fov = 90;
+
+
 
         vk::Sampler sampler;
 
@@ -54,7 +69,7 @@ namespace schoo {
 
         void updateSets();
 
-        void createUniformBuffer();
+        void createUniformBuffers();
 
         void createFrameBuffers();
 
@@ -66,6 +81,6 @@ namespace schoo {
 
         void UpdateViewMatrix();
 
-        void initVP();
+        void initUniform();
     };
 }

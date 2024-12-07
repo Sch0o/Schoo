@@ -53,4 +53,8 @@ namespace schoo{
         up_= glm::normalize(glm::cross(right_, forward_));
     }
 
+    glm::vec3 Camera::GetPosition() {
+        return position_;
+    }
+
 }

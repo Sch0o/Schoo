@@ -48,6 +48,9 @@ namespace schoo {
         } vp;
         float fov_ = 90;
 
+
+
+
         void createSemaphores();
 
         void createFences();

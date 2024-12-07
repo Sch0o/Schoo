@@ -21,7 +21,8 @@ execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shader/shader.frag 
 
 aux_source_directory(source SRC)
 file(GLOB IMGUI_SOURCES ${IMGUI_DIR}/*.cpp)
-add_library(schoo_lib STATIC ${SRC} ${IMGUI_SOURCES})
+add_library(schoo_lib STATIC ${SRC} ${IMGUI_SOURCES}
+        schoo/render/light.hpp)
 target_include_directories(schoo_lib PUBLIC
         ${PROJECT_SOURCE_DIR}
         ${PROJECT_SOURCE_DIR}/external

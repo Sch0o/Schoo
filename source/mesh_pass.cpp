@@ -11,13 +11,13 @@ namespace schoo {
         createRenderPass();
         createFrameBuffers();
         createSetLayout();
-        createUniformBuffer();
+        createUniformBuffers();
         createRenderPipeline();
         createSampler();
         allocateSets();
         updateSets();
         createCmdBuffer();
-        initVP();
+        initUniform();
     }
 
     MeshPass::~MeshPass() {
@@ -26,8 +26,8 @@ namespace schoo {
 
         device.destroySampler(sampler);
         device.destroyDescriptorPool(descriptorPool);
-        hostUniformBuffer.reset();
-        deviceUniformBuffer.reset();
+        constant.stagingBuffer.reset();
+        constant.deviceBuffer.reset();
         for (int i=0;i<2;i++) {
 
             commandManager->FreeCommandbuffers(cmdBuffers[i]);
@@ -130,7 +130,8 @@ namespace schoo {
     }
 
     void MeshPass::UpdateViewMatrix() {
-        vp.view = SchooEngine::GetInstance().camera->GetViewMatrix();
+        uniformConstants.view = SchooEngine::GetInstance().camera->GetViewMatrix();
+        
         loadUniformData();
     }
 
@@ -236,14 +237,18 @@ namespace schoo {
         createInfoModel.setBindings(bindingsModel);
         modelSetLayout = Context::GetInstance().device.createDescriptorSetLayout(createInfoModel);
 
-        //vp matrix
+        //vp matrix and some constant
         vk::DescriptorSetLayoutCreateInfo createInfoVP;
-        std::array<vk::DescriptorSetLayoutBinding, 1> bindingsVP;
-        bindingsVP[0].setBinding(0)
+        std::array<vk::DescriptorSetLayoutBinding, 2> bindings2;
+        bindings2[0].setBinding(0)
                 .setDescriptorType(vk::DescriptorType::eUniformBuffer)
                 .setStageFlags(vk::ShaderStageFlagBits::eVertex)
                 .setDescriptorCount(1);
-        createInfoVP.setBindings(bindingsVP);
+        bindings2[1].setBinding(1)
+        .setDescriptorType(vk::DescriptorType::eUniformBuffer)
+        .setStageFlags(vk::ShaderStageFlagBits::eFragment)
+        .setDescriptorCount(1);
+        createInfoVP.setBindings(bindings2);
         vpSetLayout = Context::GetInstance().device.createDescriptorSetLayout(createInfoVP);
     }
 
@@ -276,23 +281,24 @@ namespace schoo {
                     .setDescriptorSetCount(1);
             model->sets = Context::GetInstance().device.allocateDescriptorSets(allocateInfoModel);
         }
-
     }
 
     void MeshPass::updateSets() {
         //vp
         vk::DescriptorBufferInfo vpBufferInfo;
         vpBufferInfo.setOffset(0)
-                .setBuffer(deviceUniformBuffer->buffer)
-                .setRange(deviceUniformBuffer->size);
-        std::array<vk::WriteDescriptorSet, 1> vpWriter;
-        vpWriter[0].setDescriptorCount(1)
+                .setBuffer(constant.deviceBuffer->buffer)
+                .setRange(constant.deviceBuffer->size);
+        std::array<vk::WriteDescriptorSet, 1> Writers1;
+        Writers1[0].setDescriptorCount(1)
                 .setDescriptorType(vk::DescriptorType::eUniformBuffer)
                 .setBufferInfo(vpBufferInfo)
                 .setDstBinding(0)
                 .setDstSet(vpSets[0])
                 .setDstArrayElement(0);
-        Context::GetInstance().device.updateDescriptorSets(vpWriter, {});
+        vk::DescriptorBufferInfo constantBufferInfo;
+
+        Context::GetInstance().device.updateDescriptorSets(Writers1, {});
         //model and sampler
         std::array<vk::WriteDescriptorSet, 2> modelWriters;
         for (auto &model: renderResource) {
@@ -351,36 +357,38 @@ namespace schoo {
         cmdBuffers = Context::GetInstance().commandManager->AllocateCmdBuffers(2);
     }
 
-    void MeshPass::createUniformBuffer() {
-        size_t bufferSize = sizeof(vp);
+    void MeshPass::createUniformBuffers() {
+        size_t bufferSize = sizeof(uniformConstants);
         //std::cout << "UniformSize:"<<bufferSize<<std::endl;
-        hostUniformBuffer.reset(new Buffer(bufferSize,
+        constant.stagingBuffer.reset(new Buffer(bufferSize,
                                            vk::BufferUsageFlagBits::eTransferSrc,
                                            vk::MemoryPropertyFlagBits::eHostCoherent |
                                            vk::MemoryPropertyFlagBits::eHostVisible));
 
-        deviceUniformBuffer.reset(new Buffer(bufferSize,
+        constant.deviceBuffer.reset(new Buffer(bufferSize,
                                              vk::BufferUsageFlagBits::eUniformBuffer |
                                              vk::BufferUsageFlagBits::eTransferDst,
                                              vk::MemoryPropertyFlagBits::eDeviceLocal));
-    }
 
+    }
     void MeshPass::loadUniformData() {
-        void *data = Context::GetInstance().device.mapMemory(hostUniformBuffer->memory, 0, hostUniformBuffer->size);
-        memcpy(data, &vp, hostUniformBuffer->size);
-        Context::GetInstance().device.unmapMemory(hostUniformBuffer->memory);
-
-        copyBuffer(hostUniformBuffer->buffer, deviceUniformBuffer->buffer, hostUniformBuffer->size, 0, 0);
+        void *data = Context::GetInstance().device.mapMemory(constant.stagingBuffer->memory, 0, constant.stagingBuffer->size);
+        memcpy(data, &uniformConstants, constant.stagingBuffer->size);
+        Context::GetInstance().device.unmapMemory(constant.stagingBuffer->memory);
+        copyBuffer(constant.stagingBuffer->buffer, constant.deviceBuffer->buffer, constant.stagingBuffer->size, 0, 0);
     }
 
-    void MeshPass::initVP() {
-        vp.view = SchooEngine::GetInstance().camera->GetViewMatrix();
-
+    void MeshPass::initUniform(){
+        uniformConstants.view = SchooEngine::GetInstance().camera->GetViewMatrix();
         uint32_t width = Context::GetInstance().swapchain->width;
         uint32_t height = Context::GetInstance().swapchain->height;
-        vp.project = glm::perspective(glm::radians(fov), width / (height * 1.0f), 0.1f, 100.0f);
-        vp.project[1][1] *= -1;
+        uniformConstants.projection = glm::perspective(glm::radians(fov), width / (height * 1.0f), 0.1f, 100.0f);
+        uniformConstants.projection[1][1] *=-1;
+        uniformConstants.lightPos=glm::vec4(5,5,5,1.0);
+        uniformConstants.viewPos=glm::vec4(SchooEngine::GetInstance().camera->GetPosition(),1.0f);
+        uniformConstants.lightColor=glm::vec4(1.0f,1.0f,1.0f,0.0f);
     }
+
 
     void MeshPass::createFrameBuffers() {
         Context &context = Context::GetInstance();

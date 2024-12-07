@@ -2,21 +2,38 @@
 
 layout(location=0) in vec3 position;
 layout(location=1) in vec3 color;
-layout(location=2) in vec2 texCoord;
+layout(location=2) in vec3 normal;
+layout(location=3) in vec2 texCoord;
 
-layout(location=0) out vec4 fragColor;
-layout(location=1) out vec2 fragTexcoord;
+layout(location=0) out vec2 fragTexcoord;
+layout(location=1) out vec3 FragPos;
+layout(location=2) out vec3 Normal;
+layout(location=3) out vec3 lightColor;
+layout(location=4) out vec3 lightPos;
+layout(location=5) out vec3 viewPos;
+
 
 layout(set=0, binding=0) uniform UBO{
     mat4 view;
     mat4 project;
+    vec4 lightPos;
+    vec4 lightColor;
+    vec4 viewPos;
 }ubo;
+
 layout(set=1,binding=0) uniform ModelBlock{
     mat4 model;
-}modelUniform;
+}uboModel;
 
 void main(){
-    gl_Position=ubo.project*ubo.view*vec4(position, 1.0);
-    fragColor=vec4(color, 1.0);
+    mat4 model=uboModel.model;
+    FragPos=vec3(model*vec4(position,1.0));
+    Normal=mat3(transpose(inverse(model)))*normal;
+
     fragTexcoord=texCoord;
+    lightColor=ubo.lightColor.xyz;
+    viewPos=ubo.viewPos.xyz;
+    lightPos=ubo.lightPos.xyz;
+
+    gl_Position=ubo.project*ubo.view*model*vec4(position, 1.0);
 }
