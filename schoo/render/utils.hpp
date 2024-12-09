@@ -5,6 +5,8 @@
 #include <fstream>
 #include <iostream>
 #include<iomanip>
+#include "vertexData.hpp"
+
 
 namespace schoo {
     std::string ReadWholeFile(const std::string &filename);

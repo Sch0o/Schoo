@@ -37,8 +37,6 @@ namespace schoo {
         auto &context = Context::GetInstance();
         context.InitCommandManager();
         context.InitSwapchain(width, height);
-        Shader::Init(ReadWholeFile(R"(..\..\shader\vert.spv)"),
-                     ReadWholeFile(R"(..\..\shader\frag.spv)"));
         context.InitRenderer();
     }
 
@@ -47,7 +45,6 @@ namespace schoo {
         context.device.waitIdle();
         context.DestroyRenderer();
         context.DestroyCommandManager();
-        Shader::Quit();
         context.QuitSwapchain();
         Context::Quit();
         Window::Quit();

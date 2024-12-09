@@ -1,21 +1,7 @@
 #include"schoo/render/shader.hpp"
-
+#include"schoo/render/context.hpp"
 
 namespace schoo {
-    std::unique_ptr<Shader>Shader::instance_ = nullptr;
-
-    void Shader::Init(const std::string& vertexSource, const std::string& fragSource) {
-        instance_.reset(new Shader(vertexSource, fragSource));
-    }
-
-    Shader& Shader::GetInstance() {
-        return *instance_;
-    }
-
-    void Shader::Quit() {
-        instance_.reset();
-    }
-
     Shader::Shader(const std::string &vertexSource, const std::string &fragSource) {
         vk::ShaderModuleCreateInfo createInfo;
         createInfo.setCodeSize(vertexSource.size())

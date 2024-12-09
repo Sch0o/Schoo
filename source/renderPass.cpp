@@ -4,5 +4,8 @@ namespace schoo{
 
     }
 
+    vk::ImageView RenderPass::FrameBuffer::getImageView(int index) {
+        return attachments[index].imageView;
+    }
 }
 

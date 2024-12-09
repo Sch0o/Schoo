@@ -8,6 +8,10 @@
 #include"schoo/render/model.hpp"
 #include"schoo/render/passes/mesh_pass.hpp"
 #include"schoo/render/passes/ui_pass.hpp"
+#include"schoo/render/passes/shadowMap_pass.hpp"
+#include"schoo/render/light.hpp"
+#include"schoo/render/shader.hpp"
+
 
 namespace schoo {
     class Renderer final {
@@ -17,18 +21,36 @@ namespace schoo {
         ~Renderer();
 
         void Render();
-
+        void InitPasses();
 
         uint32_t currentFrame = 0;
         uint32_t imageIndex=0;
 
+        struct RenderResource {
+            std::vector<std::shared_ptr<Model>>models;
+        }res;
+
+        struct Lightlist {
+            PointLight plight;
+        }lights;
+
+        struct Shaders{
+            std::shared_ptr<Shader> shadow_map_shader;
+            std::shared_ptr<Shader> render_shader;
+        }shaders;
+        struct Passes{
+            std::shared_ptr<ShadowMapPass>shadow_map_pass;
+            std::shared_ptr<MeshPass>mesh_pass;
+            std::shared_ptr<UIPass>ui_pass;
+            void destoryPasses();
+        }passes;
+
+
     private:
-        std::shared_ptr<MeshPass>mesh_pass;
-        std::shared_ptr<UIPass>ui_pass;
-        std::vector<std::shared_ptr<Model>>models;
 
         uint32_t frameNums;
 
+        std::vector<vk::Semaphore> shadowMapAvaliables_;
         std::vector<vk::Semaphore> imageAvaliables_;
         std::vector<vk::Semaphore> imageDrawFinshs_;
         std::vector<vk::Semaphore> uiDrawFinshs_;
@@ -42,20 +64,14 @@ namespace schoo {
 
         std::vector<vk::DescriptorSet> vpSets_;
 
-        struct VP {
-            glm::mat4 view = glm::mat4(1.0f);
-            glm::mat4 project = glm::mat4(1.0f);
-        } vp;
-        float fov_ = 90;
-
-
-
-
         void createSemaphores();
 
         void createFences();
 
-        void loadModels();
+        void loadScene();
+
+        void submitCmd();
+
 
     };
 }

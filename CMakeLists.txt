@@ -15,14 +15,17 @@ else()
     message("-- Found glslc: ${Vulkan_GLSLC_EXECUTABLE}")
 endif()
 
-execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shader/shader.vert -o ${CMAKE_SOURCE_DIR}/shader/vert.spv)
-execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shader/shader.frag -o ${CMAKE_SOURCE_DIR}/shader/frag.spv)
+execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shader/shader.vert -o ${CMAKE_SOURCE_DIR}/shader/render_vert.spv)
+execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shader/shader.frag -o ${CMAKE_SOURCE_DIR}/shader/render_frag.spv)
+execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shader/shadowmap.vert -o ${CMAKE_SOURCE_DIR}/shader/shadow_map_vert.spv)
+execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shader/shadowmap.frag -o ${CMAKE_SOURCE_DIR}/shader/shadow_map_frag.spv)
 
 
 aux_source_directory(source SRC)
 file(GLOB IMGUI_SOURCES ${IMGUI_DIR}/*.cpp)
 add_library(schoo_lib STATIC ${SRC} ${IMGUI_SOURCES}
-        schoo/render/light.hpp)
+        schoo/render/light.hpp
+        schoo/render/passes/shadowMap_pass.hpp)
 target_include_directories(schoo_lib PUBLIC
         ${PROJECT_SOURCE_DIR}
         ${PROJECT_SOURCE_DIR}/external

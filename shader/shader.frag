@@ -9,6 +9,7 @@ layout(location=5) in vec3 viewPos;
 
 layout(location=0) out vec4 outcolor;
 
+layout(set=0,binding=1) uniform sampler2D shadowMapSampler;
 layout(set=1, binding=1) uniform sampler2D texSampler;
 
 void main(){

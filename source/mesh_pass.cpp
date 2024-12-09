@@ -2,24 +2,27 @@
 #include "render/shader.hpp"
 #include "render/utils.hpp"
 #include "engine.hpp"
+#include "render/context.hpp"
 
 namespace schoo {
 
-    MeshPass::MeshPass(std::vector<std::shared_ptr<Model>> &models) :
-            renderResource(models) {
-        createDescriptorPool();
+    MeshPass::MeshPass(){
+
+    }
+    void MeshPass::init() {
+        //renderResource
+        renderResource=Context::GetInstance().renderer->res.models;
+        //cmdBuffers
+        cmdBuffers = Context::GetInstance().commandManager->AllocateCmdBuffers(2);
+        initUniform();
+        createSampler();
+        createUniformBuffers();
         createRenderPass();
         createFrameBuffers();
-        createSetLayout();
-        createUniformBuffers();
+        setupDescriptors();
         createRenderPipeline();
-        createSampler();
-        allocateSets();
-        updateSets();
-        createCmdBuffer();
-        initUniform();
-    }
 
+    }
     MeshPass::~MeshPass() {
         auto &commandManager = Context::GetInstance().commandManager;
         auto &device = Context::GetInstance().device;
@@ -28,7 +31,7 @@ namespace schoo {
         device.destroyDescriptorPool(descriptorPool);
         constant.stagingBuffer.reset();
         constant.deviceBuffer.reset();
-        for (int i=0;i<2;i++) {
+        for (int i = 0; i < 2; i++) {
 
             commandManager->FreeCommandbuffers(cmdBuffers[i]);
             device.destroyFramebuffer(frameBuffers[i]);
@@ -36,7 +39,7 @@ namespace schoo {
         device.destroyPipeline(renderPipeline.pipeline);
         device.destroyPipelineLayout(renderPipeline.layout);
         device.destroyRenderPass(renderPass);
-        device.destroyDescriptorSetLayout(vpSetLayout);
+        device.destroyDescriptorSetLayout(globalSetLayout);
         device.destroyDescriptorSetLayout(modelSetLayout);
     }
 
@@ -88,7 +91,6 @@ namespace schoo {
 
     void MeshPass::draw() {
         UpdateViewMatrix();
-
         auto &swapchain = Context::GetInstance().swapchain;
         uint32_t currentFrame = Context::GetInstance().renderer->currentFrame;
         uint32_t imageIndex = Context::GetInstance().renderer->imageIndex;
@@ -110,7 +112,7 @@ namespace schoo {
 
             cmdBuffers[currentFrame].bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
                                                         renderPipeline.layout, 0,
-                                                        vpSets[0], {});
+                                                        globalSets[imageIndex], {});
 
             cmdBuffers[currentFrame].beginRenderPass(renderPassBeginInfo, {});
             for (const auto &model: renderResource) {
@@ -131,14 +133,14 @@ namespace schoo {
 
     void MeshPass::UpdateViewMatrix() {
         uniformConstants.view = SchooEngine::GetInstance().camera->GetViewMatrix();
-        
+
         loadUniformData();
     }
 
     void MeshPass::createRenderPipeline() {
 
         //layout
-        std::array<vk::DescriptorSetLayout, 2> setLayouts = {vpSetLayout, modelSetLayout};
+        std::array<vk::DescriptorSetLayout, 2> setLayouts = {globalSetLayout, modelSetLayout};
 
         vk::PipelineLayoutCreateInfo layoutCreateInfo;
         layoutCreateInfo.setSetLayouts(setLayouts);
@@ -163,7 +165,7 @@ namespace schoo {
         createInfo.setPInputAssemblyState(&inputAssemblyState);
 
         //Shader
-        auto stages = Shader::GetInstance().getStages();
+        auto stages= Context::GetInstance().renderer->shaders.render_shader->getStages();
         createInfo.setStages(stages);
 
         //viewport
@@ -222,7 +224,96 @@ namespace schoo {
         renderPipeline.pipeline = resultValue.value;
     }
 
-    void MeshPass::createSetLayout() {
+    void MeshPass::createSampler() {
+        auto &device = Context::GetInstance().device;
+
+        vk::SamplerCreateInfo createInfo;
+        createInfo.setMagFilter(vk::Filter::eLinear)
+                .setMinFilter(vk::Filter::eLinear)
+                .setAddressModeU(vk::SamplerAddressMode::eRepeat)
+                .setAddressModeV(vk::SamplerAddressMode::eRepeat)
+                .setAddressModeW(vk::SamplerAddressMode::eRepeat)
+                .setAnisotropyEnable(vk::False)
+                .setMaxAnisotropy(1)
+                .setBorderColor(vk::BorderColor::eIntOpaqueBlack)
+                .setUnnormalizedCoordinates(vk::False)
+                .setCompareEnable(vk::False)
+                .setCompareOp(vk::CompareOp::eAlways)
+                .setMipmapMode(vk::SamplerMipmapMode::eLinear)
+                .setMinLod(0.0f)
+                .setMaxLod(0.0f)
+                .setMipLodBias(0.0f);
+
+        sampler = device.createSampler(createInfo);
+    }
+
+    void MeshPass::createUniformBuffers() {
+        size_t bufferSize = sizeof(uniformConstants);
+        //std::cout << "UniformSize:"<<bufferSize<<std::endl;
+        constant.stagingBuffer.reset(new Buffer(bufferSize,
+                                                vk::BufferUsageFlagBits::eTransferSrc,
+                                                vk::MemoryPropertyFlagBits::eHostCoherent |
+                                                vk::MemoryPropertyFlagBits::eHostVisible));
+
+        constant.deviceBuffer.reset(new Buffer(bufferSize,
+                                               vk::BufferUsageFlagBits::eUniformBuffer |
+                                               vk::BufferUsageFlagBits::eTransferDst,
+                                               vk::MemoryPropertyFlagBits::eDeviceLocal));
+
+    }
+
+    void MeshPass::loadUniformData() {
+        void *data = Context::GetInstance().device.mapMemory(constant.stagingBuffer->memory, 0,
+                                                             constant.stagingBuffer->size);
+        memcpy(data, &uniformConstants, constant.stagingBuffer->size);
+        Context::GetInstance().device.unmapMemory(constant.stagingBuffer->memory);
+        copyBuffer(constant.stagingBuffer->buffer, constant.deviceBuffer->buffer, constant.stagingBuffer->size, 0, 0);
+    }
+
+    void MeshPass::initUniform() {
+
+        uniformConstants.view = SchooEngine::GetInstance().camera->GetViewMatrix();
+        uint32_t width = Context::GetInstance().swapchain->width;
+        uint32_t height = Context::GetInstance().swapchain->height;
+        uniformConstants.projection = glm::perspective(glm::radians(fov), width / (height * 1.0f), 0.1f, 100.0f);
+        uniformConstants.projection[1][1] *= -1;
+
+        glm::vec3 lightPos=Context::GetInstance().renderer->lights.plight.position;
+        glm::vec3 lightColor=Context::GetInstance().renderer->lights.plight.color;
+
+        uniformConstants.lightPos =glm::vec4(lightPos,1.0f) ;
+        uniformConstants.viewPos = glm::vec4(SchooEngine::GetInstance().camera->GetPosition(), 1.0f);
+        uniformConstants.lightColor = glm::vec4(lightColor, 0.0f);
+    }
+
+    void MeshPass::createFrameBuffers() {
+        Context &context = Context::GetInstance();
+        frameBuffers.resize(context.swapchain->imageViews.size());
+        for (int i = 0; i < frameBuffers.size(); i++) {
+            vk::FramebufferCreateInfo createInfo;
+            std::array<vk::ImageView, 2> attachments = {context.swapchain->imageViews[i],
+                                                        context.swapchain->depthImageView};
+            createInfo.setAttachments(attachments)
+                    .setWidth(context.swapchain->width)
+                    .setHeight(context.swapchain->height)
+                    .setRenderPass(renderPass)
+                    .setLayers(1);
+            frameBuffers[i] = Context::GetInstance().device.createFramebuffer(createInfo);
+        }
+    }
+
+    void MeshPass::setupDescriptors() {
+        vk::DescriptorPoolCreateInfo createInfo;
+        std::array<vk::DescriptorPoolSize, 2> poolSizes;
+        poolSizes[0].setType(vk::DescriptorType::eUniformBuffer)
+                .setDescriptorCount(3);
+        poolSizes[1].setType(vk::DescriptorType::eCombinedImageSampler)
+                .setDescriptorCount(6);
+        createInfo.setMaxSets(4)
+                .setPoolSizes(poolSizes);
+        descriptorPool = Context::GetInstance().device.createDescriptorPool(createInfo);
+
+        //setLayout
         //model matrix and sampler
         vk::DescriptorSetLayoutCreateInfo createInfoModel;
         std::array<vk::DescriptorSetLayoutBinding, 2> bindingsModel;
@@ -245,32 +336,21 @@ namespace schoo {
                 .setStageFlags(vk::ShaderStageFlagBits::eVertex)
                 .setDescriptorCount(1);
         bindings2[1].setBinding(1)
-        .setDescriptorType(vk::DescriptorType::eUniformBuffer)
-        .setStageFlags(vk::ShaderStageFlagBits::eFragment)
-        .setDescriptorCount(1);
+                .setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
+                .setStageFlags(vk::ShaderStageFlagBits::eFragment)
+                .setDescriptorCount(1);
+
         createInfoVP.setBindings(bindings2);
-        vpSetLayout = Context::GetInstance().device.createDescriptorSetLayout(createInfoVP);
-    }
+        globalSetLayout = Context::GetInstance().device.createDescriptorSetLayout(createInfoVP);
 
-    void MeshPass::createDescriptorPool() {
-        vk::DescriptorPoolCreateInfo createInfo;
-        std::array<vk::DescriptorPoolSize, 2> poolSizes;
-        poolSizes[0].setType(vk::DescriptorType::eUniformBuffer)
-                .setDescriptorCount(3);
-        poolSizes[1].setType(vk::DescriptorType::eCombinedImageSampler)
-                .setDescriptorCount(3);
-        createInfo.setMaxSets(3)
-                .setPoolSizes(poolSizes);
-        descriptorPool = Context::GetInstance().device.createDescriptorPool(createInfo);
-    }
 
-    void MeshPass::allocateSets() {
-        std::vector<vk::DescriptorSetLayout> vpSetLayouts(1, vpSetLayout);
+        //allocate Sets
+        std::vector<vk::DescriptorSetLayout> vpSetLayouts(2, globalSetLayout);
         vk::DescriptorSetAllocateInfo allocateInfo;
         allocateInfo.setSetLayouts(vpSetLayouts)
                 .setDescriptorPool(descriptorPool)
-                .setDescriptorSetCount(1);
-        vpSets = Context::GetInstance().device.allocateDescriptorSets(allocateInfo);
+                .setDescriptorSetCount(2);
+        globalSets = Context::GetInstance().device.allocateDescriptorSets(allocateInfo);
 
         for (auto &model: renderResource) {
             std::vector<vk::DescriptorSetLayout> modelSetLayouts(1,
@@ -281,24 +361,34 @@ namespace schoo {
                     .setDescriptorSetCount(1);
             model->sets = Context::GetInstance().device.allocateDescriptorSets(allocateInfoModel);
         }
-    }
 
-    void MeshPass::updateSets() {
-        //vp
+        //update sets
         vk::DescriptorBufferInfo vpBufferInfo;
         vpBufferInfo.setOffset(0)
                 .setBuffer(constant.deviceBuffer->buffer)
                 .setRange(constant.deviceBuffer->size);
-        std::array<vk::WriteDescriptorSet, 1> Writers1;
-        Writers1[0].setDescriptorCount(1)
-                .setDescriptorType(vk::DescriptorType::eUniformBuffer)
-                .setBufferInfo(vpBufferInfo)
-                .setDstBinding(0)
-                .setDstSet(vpSets[0])
-                .setDstArrayElement(0);
-        vk::DescriptorBufferInfo constantBufferInfo;
+        std::array<vk::WriteDescriptorSet, 2> Writers1;
+        for(int i=0;i<globalSets.size();i++){
+            Writers1[0].setDescriptorCount(1)
+                    .setDescriptorType(vk::DescriptorType::eUniformBuffer)
+                    .setBufferInfo(vpBufferInfo)
+                    .setDstBinding(0)
+                    .setDstSet(globalSets[i])
+                    .setDstArrayElement(0);
 
-        Context::GetInstance().device.updateDescriptorSets(Writers1, {});
+            vk::DescriptorImageInfo imageInfo;
+            imageInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal)
+                    .setImageView(Context::GetInstance().renderer->passes.shadow_map_pass->framebuffers[i].getImageView(0))
+                    .setSampler(sampler);
+            Writers1[1].setDescriptorCount(1)
+                    .setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
+                    .setImageInfo(imageInfo)
+                    .setDstBinding(1)
+                    .setDstSet(globalSets[i])
+                    .setDstArrayElement(0);
+            Context::GetInstance().device.updateDescriptorSets(Writers1, {});
+        }
+
         //model and sampler
         std::array<vk::WriteDescriptorSet, 2> modelWriters;
         for (auto &model: renderResource) {
@@ -330,80 +420,5 @@ namespace schoo {
         }
     }
 
-    void MeshPass::createSampler() {
-        auto &device = Context::GetInstance().device;
-
-        vk::SamplerCreateInfo createInfo;
-        createInfo.setMagFilter(vk::Filter::eLinear)
-                .setMinFilter(vk::Filter::eLinear)
-                .setAddressModeU(vk::SamplerAddressMode::eRepeat)
-                .setAddressModeV(vk::SamplerAddressMode::eRepeat)
-                .setAddressModeW(vk::SamplerAddressMode::eRepeat)
-                .setAnisotropyEnable(vk::False)
-                .setMaxAnisotropy(1)
-                .setBorderColor(vk::BorderColor::eIntOpaqueBlack)
-                .setUnnormalizedCoordinates(vk::False)
-                .setCompareEnable(vk::False)
-                .setCompareOp(vk::CompareOp::eAlways)
-                .setMipmapMode(vk::SamplerMipmapMode::eLinear)
-                .setMinLod(0.0f)
-                .setMaxLod(0.0f)
-                .setMipLodBias(0.0f);
-
-        sampler = device.createSampler(createInfo);
-    }
-
-    void MeshPass::createCmdBuffer() {
-        cmdBuffers = Context::GetInstance().commandManager->AllocateCmdBuffers(2);
-    }
-
-    void MeshPass::createUniformBuffers() {
-        size_t bufferSize = sizeof(uniformConstants);
-        //std::cout << "UniformSize:"<<bufferSize<<std::endl;
-        constant.stagingBuffer.reset(new Buffer(bufferSize,
-                                           vk::BufferUsageFlagBits::eTransferSrc,
-                                           vk::MemoryPropertyFlagBits::eHostCoherent |
-                                           vk::MemoryPropertyFlagBits::eHostVisible));
-
-        constant.deviceBuffer.reset(new Buffer(bufferSize,
-                                             vk::BufferUsageFlagBits::eUniformBuffer |
-                                             vk::BufferUsageFlagBits::eTransferDst,
-                                             vk::MemoryPropertyFlagBits::eDeviceLocal));
-
-    }
-    void MeshPass::loadUniformData() {
-        void *data = Context::GetInstance().device.mapMemory(constant.stagingBuffer->memory, 0, constant.stagingBuffer->size);
-        memcpy(data, &uniformConstants, constant.stagingBuffer->size);
-        Context::GetInstance().device.unmapMemory(constant.stagingBuffer->memory);
-        copyBuffer(constant.stagingBuffer->buffer, constant.deviceBuffer->buffer, constant.stagingBuffer->size, 0, 0);
-    }
-
-    void MeshPass::initUniform(){
-        uniformConstants.view = SchooEngine::GetInstance().camera->GetViewMatrix();
-        uint32_t width = Context::GetInstance().swapchain->width;
-        uint32_t height = Context::GetInstance().swapchain->height;
-        uniformConstants.projection = glm::perspective(glm::radians(fov), width / (height * 1.0f), 0.1f, 100.0f);
-        uniformConstants.projection[1][1] *=-1;
-        uniformConstants.lightPos=glm::vec4(5,5,5,1.0);
-        uniformConstants.viewPos=glm::vec4(SchooEngine::GetInstance().camera->GetPosition(),1.0f);
-        uniformConstants.lightColor=glm::vec4(1.0f,1.0f,1.0f,0.0f);
-    }
-
-
-    void MeshPass::createFrameBuffers() {
-        Context &context = Context::GetInstance();
-        frameBuffers.resize(context.swapchain->imageViews.size());
-        for (int i = 0; i < frameBuffers.size(); i++) {
-            vk::FramebufferCreateInfo createInfo;
-            std::array<vk::ImageView, 2> attachments = {context.swapchain->imageViews[i],
-                                                        context.swapchain->depthImageView};
-            createInfo.setAttachments(attachments)
-                    .setWidth(context.swapchain->width)
-                    .setHeight(context.swapchain->height)
-                    .setRenderPass(renderPass)
-                    .setLayers(1);
-            frameBuffers[i] = Context::GetInstance().device.createFramebuffer(createInfo);
-        }
-    }
 
 }

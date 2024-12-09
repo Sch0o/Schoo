@@ -13,19 +13,19 @@ namespace schoo {
         this->frameNums = frameNums;
         createSemaphores();
         createFences();
-        loadModels();
-        mesh_pass.reset(new MeshPass(models));
-        ui_pass.reset(new UIPass());
+        loadScene();
     }
 
     Renderer::~Renderer() {
-        mesh_pass.reset();
-        ui_pass.reset();
+        passes.destoryPasses();
+        shaders.render_shader.reset();
+        shaders.shadow_map_shader.reset();
 
         auto &commandManager = Context::GetInstance().commandManager;
         auto &device = Context::GetInstance().device;
 
         for (int i = 0; i < frameNums; i++) {
+            device.destroySemaphore(shadowMapAvaliables_[i]);
             device.destroySemaphore(imageAvaliables_[i]);
             device.destroySemaphore(imageDrawFinshs_[i]);
             device.destroySemaphore(uiDrawFinshs_[i]);
@@ -54,18 +54,28 @@ namespace schoo {
         }
         imageIndex = result.value;
 
-        mesh_pass->draw();
-        ui_pass->draw();
+        passes.shadow_map_pass->draw();
+        passes.mesh_pass->draw();
+        passes.ui_pass->draw();
 
         vk::SubmitInfo submitInfo;
-        std::array<vk::PipelineStageFlags, 1> waitStages = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
-        submitInfo.setCommandBuffers(mesh_pass->cmdBuffers[currentFrame])
+
+
+        std::array<vk::PipelineStageFlags, 1> waitStages = {vk::PipelineStageFlagBits::eLateFragmentTests};
+        submitInfo.setCommandBuffers(passes.shadow_map_pass->cmdBuffers[currentFrame])
                 .setWaitSemaphores(imageAvaliables_[currentFrame])
+                .setSignalSemaphores(shadowMapAvaliables_[currentFrame])
+                .setWaitDstStageMask(waitStages);
+        Context::GetInstance().graphicsQueue.submit(submitInfo);
+
+        waitStages={vk::PipelineStageFlagBits::eColorAttachmentOutput};
+        submitInfo.setCommandBuffers(passes.mesh_pass->cmdBuffers[currentFrame])
+                .setWaitSemaphores(shadowMapAvaliables_[currentFrame])
                 .setSignalSemaphores(imageDrawFinshs_[currentFrame])
                 .setWaitDstStageMask(waitStages);
         Context::GetInstance().graphicsQueue.submit(submitInfo);
 
-        submitInfo.setCommandBuffers(ui_pass->cmdBuffers[currentFrame])
+        submitInfo.setCommandBuffers(passes.ui_pass->cmdBuffers[currentFrame])
                 .setWaitSemaphores(imageDrawFinshs_[currentFrame])
                 .setSignalSemaphores(uiDrawFinshs_[currentFrame])
                 .setWaitDstStageMask(waitStages);
@@ -84,12 +94,14 @@ namespace schoo {
     }
 
     void Renderer::createSemaphores() {
+        shadowMapAvaliables_.resize(frameNums);
         imageAvaliables_.resize(frameNums);
         imageDrawFinshs_.resize(frameNums);
         uiDrawFinshs_.resize(frameNums);
 
         vk::SemaphoreCreateInfo createInfo;
         for (int i = 0; i < frameNums; i++) {
+            shadowMapAvaliables_[i]=Context::GetInstance().device.createSemaphore(createInfo);
             imageAvaliables_[i] = Context::GetInstance().device.createSemaphore(createInfo);
             imageDrawFinshs_[i] = Context::GetInstance().device.createSemaphore(createInfo);
             uiDrawFinshs_[i] = Context::GetInstance().device.createSemaphore(createInfo);
@@ -105,14 +117,36 @@ namespace schoo {
         }
     }
 
-    void Renderer::loadModels() {
-        models.resize(2);
-        models[0].reset(new Model(R"(..\..\assets\models\marry\Marry.obj)",
+    void Renderer::loadScene() {
+        res.models.resize(2);
+        res.models[0].reset(new Model(R"(..\..\assets\models\marry\Marry.obj)",
                                   R"(..\..\assets\models\marry\MC003_Kozakura_Mari.png)",
                                   glm::vec3(0, 0.5f, 0)));
-        models[1].reset(new Model(R"(..\..\assets\models\floor\floor.obj)",
+        res.models[1].reset(new Model(R"(..\..\assets\models\floor\floor.obj)",
                                   R"(..\..\assets\textures\2x2white.png)",
                                   glm::vec3(0, 0, 0)));
+
+        lights.plight={glm::vec3(5,5,5),glm::vec3(1.0,1.0,1.0)};
+    }
+
+    void Renderer::InitPasses() {
+        shaders.shadow_map_shader.reset(new Shader(ReadWholeFile(R"(..\..\shader\shadow_map_vert.spv)"),
+                                                          ReadWholeFile(R"(..\..\shader\shadow_map_frag.spv)")));
+        shaders.render_shader.reset(new Shader(ReadWholeFile(R"(..\..\shader\render_vert.spv)"),
+                                     ReadWholeFile(R"(..\..\shader\render_frag.spv)")));
+
+        passes.shadow_map_pass.reset(new ShadowMapPass());
+        passes.shadow_map_pass->init();
+
+        passes.mesh_pass.reset(new MeshPass());
+        passes.mesh_pass->init();
+        passes.ui_pass.reset(new UIPass());
+    }
+
+    void Renderer::Passes::destoryPasses() {
+        shadow_map_pass.reset();
+        mesh_pass.reset();
+        ui_pass.reset();
     }
 
 }

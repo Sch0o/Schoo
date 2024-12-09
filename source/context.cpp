@@ -125,6 +125,7 @@ namespace schoo {
 
     void Context::InitRenderer() {
         renderer.reset(new Renderer());
+        renderer->InitPasses();
     }
 
     void Context::DestroyRenderer() {
