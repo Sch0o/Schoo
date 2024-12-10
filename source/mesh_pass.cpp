@@ -23,6 +23,7 @@ namespace schoo {
         createRenderPipeline();
 
     }
+
     MeshPass::~MeshPass() {
         auto &commandManager = Context::GetInstance().commandManager;
         auto &device = Context::GetInstance().device;
@@ -104,7 +105,7 @@ namespace schoo {
             vk::Rect2D area({0, 0}, {swapchain->width, swapchain->height});
             std::array<vk::ClearValue, 2> clearValues;
             clearValues[0].color = vk::ClearColorValue(std::array<float, 4>{0.1f, 0.1f, 0.1f, 1.0f});
-            clearValues[1].depthStencil = vk::ClearDepthStencilValue(0.99f, 0);
+            clearValues[1].depthStencil = vk::ClearDepthStencilValue(1.0f, 0);
             renderPassBeginInfo.setRenderPass(renderPass)
                     .setRenderArea(area)
                     .setFramebuffer(frameBuffers[imageIndex])
@@ -230,12 +231,12 @@ namespace schoo {
         vk::SamplerCreateInfo createInfo;
         createInfo.setMagFilter(vk::Filter::eLinear)
                 .setMinFilter(vk::Filter::eLinear)
-                .setAddressModeU(vk::SamplerAddressMode::eRepeat)
-                .setAddressModeV(vk::SamplerAddressMode::eRepeat)
-                .setAddressModeW(vk::SamplerAddressMode::eRepeat)
+                .setAddressModeU(vk::SamplerAddressMode::eClampToBorder)
+                .setAddressModeV(vk::SamplerAddressMode::eClampToBorder)
+                .setAddressModeW(vk::SamplerAddressMode::eClampToBorder)
                 .setAnisotropyEnable(vk::False)
                 .setMaxAnisotropy(1)
-                .setBorderColor(vk::BorderColor::eIntOpaqueBlack)
+                .setBorderColor(vk::BorderColor::eFloatOpaqueWhite)
                 .setUnnormalizedCoordinates(vk::False)
                 .setCompareEnable(vk::False)
                 .setCompareOp(vk::CompareOp::eAlways)
@@ -277,6 +278,9 @@ namespace schoo {
         uint32_t height = Context::GetInstance().swapchain->height;
         uniformConstants.projection = glm::perspective(glm::radians(fov), width / (height * 1.0f), 0.1f, 100.0f);
         uniformConstants.projection[1][1] *= -1;
+
+        auto&renderer=Context::GetInstance().renderer;
+        uniformConstants.lightSpace=renderer->passes.shadow_map_pass->uboData.depthMVP;
 
         glm::vec3 lightPos=Context::GetInstance().renderer->lights.plight.position;
         glm::vec3 lightColor=Context::GetInstance().renderer->lights.plight.color;
@@ -377,7 +381,7 @@ namespace schoo {
                     .setDstArrayElement(0);
 
             vk::DescriptorImageInfo imageInfo;
-            imageInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal)
+            imageInfo.setImageLayout(vk::ImageLayout::eDepthStencilReadOnlyOptimal)
                     .setImageView(Context::GetInstance().renderer->passes.shadow_map_pass->framebuffers[i].getImageView(0))
                     .setSampler(sampler);
             Writers1[1].setDescriptorCount(1)

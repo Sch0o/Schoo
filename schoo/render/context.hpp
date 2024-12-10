@@ -42,7 +42,7 @@ namespace schoo {
         vk::Queue presentQueue;
         vk::SurfaceKHR surface;
         std::unique_ptr<Swapchain> swapchain;
-        std::unique_ptr<Renderer> renderer;
+        std::shared_ptr<Renderer> renderer;
         std::unique_ptr<Command> commandManager;
 
 

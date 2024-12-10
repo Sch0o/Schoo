@@ -2,9 +2,7 @@
 #include"schoo/render/context.hpp"
 #include"schoo/render/utils.hpp"
 #include"schoo/engine.hpp"
-
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-
 #include"external/glm/ext/matrix_clip_space.hpp"
 
 namespace schoo {
@@ -121,12 +119,12 @@ namespace schoo {
         res.models.resize(2);
         res.models[0].reset(new Model(R"(..\..\assets\models\marry\Marry.obj)",
                                   R"(..\..\assets\models\marry\MC003_Kozakura_Mari.png)",
-                                  glm::vec3(0, 0.5f, 0)));
+                                  glm::vec3(0, 0.0f, 0)));
         res.models[1].reset(new Model(R"(..\..\assets\models\floor\floor.obj)",
                                   R"(..\..\assets\textures\2x2white.png)",
                                   glm::vec3(0, 0, 0)));
 
-        lights.plight={glm::vec3(5,5,5),glm::vec3(1.0,1.0,1.0)};
+        lights.plight={glm::vec3(0,4,3),glm::vec3(1.0,1.0,1.0)};
     }
 
     void Renderer::InitPasses() {

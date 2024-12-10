@@ -26,7 +26,6 @@ namespace schoo {
     }
 
     void ShadowMapPass::draw() {
-        auto &swapchain = Context::GetInstance().swapchain;
         uint32_t currentFrame = Context::GetInstance().renderer->currentFrame;
         uint32_t imageIndex = Context::GetInstance().renderer->imageIndex;
         cmdBuffers[currentFrame].reset();
@@ -38,11 +37,15 @@ namespace schoo {
             vk::RenderPassBeginInfo renderPassBeginInfo;
             vk::Rect2D area({0, 0}, {shadowMapSize, shadowMapSize});
             std::array<vk::ClearValue, 1> clearValues;
-            clearValues[0].depthStencil = vk::ClearDepthStencilValue(0.99f, 0);
+            clearValues[0].depthStencil = vk::ClearDepthStencilValue(1.0f, 0);
             renderPassBeginInfo.setRenderPass(renderPass)
                     .setRenderArea(area)
                     .setFramebuffer(framebuffers[imageIndex].framebuffer)
                     .setClearValues(clearValues);
+
+//            float depthBiasConstant = 0.0f;
+//            float depthBiasSlope = 7.5f;
+//            cmdBuffers[currentFrame].setDepthBias(depthBiasConstant,0.0f, depthBiasSlope);
 
             cmdBuffers[currentFrame].bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
                                                         renderPipeline.layout, 0,
@@ -106,7 +109,6 @@ namespace schoo {
             vk::MemoryAllocateInfo allocateInfo;
             auto requirements = device.getImageMemoryRequirements(attachment.image);
             allocateInfo.setAllocationSize(requirements.size);
-
             auto index = Buffer::QueryBufferMemTypeIndex(requirements.memoryTypeBits,
                                                          vk::MemoryPropertyFlagBits::eDeviceLocal);
 
@@ -138,7 +140,7 @@ namespace schoo {
         vk::RenderPassCreateInfo createInfo;
 
         std::array<vk::AttachmentDescription, 1> des;
-        des[0].setFormat(vk::Format::eD16Unorm)
+        des[0].setFormat(depthFormat)
                 .setSamples(vk::SampleCountFlagBits::e1)
                 .setLoadOp(vk::AttachmentLoadOp::eClear)
                 .setStoreOp(vk::AttachmentStoreOp::eStore)
@@ -284,11 +286,11 @@ namespace schoo {
 
         //viewport
         vk::PipelineViewportStateCreateInfo viewportCreateInfo;
-        vk::Viewport viewports(0, 0, Window::GetInstance().width,
-                               Window::GetInstance().height, 0, 1);
+        vk::Viewport viewports(0, 0, shadowMapSize,
+                               shadowMapSize, 0, 1);
         viewportCreateInfo.setViewports(viewports);
         vk::Rect2D rect({0, 0},
-                        {Window::GetInstance().width, Window::GetInstance().height});
+                        {shadowMapSize, shadowMapSize});
         viewportCreateInfo.setScissors(rect);
         createInfo.setPViewportState(&viewportCreateInfo);
 
@@ -298,9 +300,15 @@ namespace schoo {
                 .setCullMode(vk::CullModeFlagBits::eNone)
                 .setFrontFace(vk::FrontFace::eCounterClockwise)
                 .setPolygonMode(vk::PolygonMode::eFill)
-                .setLineWidth(1)
-                .setDepthBiasEnable(true);
+                .setLineWidth(1);
+//                .setDepthBiasEnable(true);
         createInfo.setPRasterizationState(&rasterization);
+
+//        //dynamic
+//        vk::PipelineDynamicStateCreateInfo dynamicStateCreateInfo;
+//        std::array<vk::DynamicState,1>dynamicStates={vk::DynamicState::eDepthBias};
+//        dynamicStateCreateInfo.setDynamicStates(dynamicStates);
+//        createInfo.setPDynamicState(&dynamicStateCreateInfo);
 
         //multiSample
         vk::PipelineMultisampleStateCreateInfo multisample;
@@ -311,7 +319,7 @@ namespace schoo {
         vk::PipelineDepthStencilStateCreateInfo depthStencilState;
         depthStencilState.setDepthTestEnable(vk::True)
                 .setDepthWriteEnable(vk::True)
-                .setDepthCompareOp(vk::CompareOp::eLess);
+                .setDepthCompareOp(vk::CompareOp::eLessOrEqual);
         createInfo.setPDepthStencilState(&depthStencilState);
         //color blending
         vk::PipelineColorBlendStateCreateInfo colorBlend;

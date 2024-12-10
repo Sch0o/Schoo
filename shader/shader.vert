@@ -11,11 +11,13 @@ layout(location=2) out vec3 Normal;
 layout(location=3) out vec3 lightColor;
 layout(location=4) out vec3 lightPos;
 layout(location=5) out vec3 viewPos;
+layout(location=6) out vec4 lightSpace_Pos;
 
 
 layout(set=0, binding=0) uniform UBO{
     mat4 view;
     mat4 project;
+    mat4 lightSpace;
     vec4 lightPos;
     vec4 lightColor;
     vec4 viewPos;
@@ -25,8 +27,15 @@ layout(set=1,binding=0) uniform ModelBlock{
     mat4 model;
 }uboModel;
 
+const mat4 bias = mat4(
+0.5, 0.0, 0.0, 0.0,
+0.0, 0.5, 0.0, 0.0,
+0.0, 0.0, 1.0, 0.0,
+0.5, 0.5, 0.0, 1.0 );
+
 void main(){
     mat4 model=uboModel.model;
+
     FragPos=vec3(model*vec4(position,1.0));
     Normal=mat3(transpose(inverse(model)))*normal;
 
@@ -35,5 +44,6 @@ void main(){
     viewPos=ubo.viewPos.xyz;
     lightPos=ubo.lightPos.xyz;
 
+    lightSpace_Pos=bias*ubo.lightSpace*vec4(position,1.0);
     gl_Position=ubo.project*ubo.view*model*vec4(position, 1.0);
 }

@@ -13,7 +13,6 @@ namespace schoo {
     void Window::Init(uint32_t width, uint32_t height, const char *title) {
         instance_.reset(new Window(width, height, title));
     }
-
     void Window::Quit() {
         instance_.reset();
     }
@@ -37,7 +36,7 @@ namespace schoo {
         glfwSetCursorPosCallback(glfwWindow, mouse_move_callback);
         glfwSetKeyCallback(glfwWindow, key_press_callback);
 
-        glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        //glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         glfwSetCursorPos(glfwWindow,600,400);
     }
 
