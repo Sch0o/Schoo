@@ -33,6 +33,11 @@ namespace schoo {
     }
 
     void Renderer::Render() {
+        glm::vec3 lightPos(0.0f);
+        lightPos.x = cos(glfwGetTime()) * 3;
+        lightPos.y = 4;
+        lightPos.z = sin(glfwGetTime()) * 3;
+        lights.plight.position=lightPos;
         //render
         auto &device = Context::GetInstance().device;
         auto &swapchain = Context::GetInstance().swapchain;
@@ -124,7 +129,7 @@ namespace schoo {
                                   R"(..\..\assets\textures\2x2white.png)",
                                   glm::vec3(0, 0, 0)));
 
-        lights.plight={glm::vec3(0,4,3),glm::vec3(1.0,1.0,1.0)};
+        lights.plight={glm::vec3(0,5,3),glm::vec3(1.0,1.0,1.0)};
     }
 
     void Renderer::InitPasses() {

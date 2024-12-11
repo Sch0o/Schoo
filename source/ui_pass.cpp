@@ -136,14 +136,28 @@ namespace schoo {
     }
 
     void UIPass::drawWindows() {
+        bool showMainWindow= true;
+        glm::vec3 &light_pos=Context::GetInstance().renderer->lights.plight.position;
+        static float light_pos_f[3]={light_pos.x,light_pos.y,light_pos.z};
+
+
         ImGuiIO &io = ImGui::GetIO();
 
-        ImGui::SetNextWindowSize(ImVec2(350, 60));
-        ImGui::Begin(
-                "detail ");                          // Create a window called "Hello, world!" and append into it.
+//        ImGui::SetNextWindowPos(ImVec2(301, 150));
+        ImGui::SetNextWindowSize(ImVec2(300, 200));
+        ImGui::Begin("Control menu ", &showMainWindow);
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+        ImGui::BeginChild("light position");
+        ImGui::Text("light position");
+        ImGui::InputFloat3("",light_pos_f);
+        ImGui::EndChild();
         ImGui::End();
         ImGui::Render();
+
+        if(light_pos.y!=light_pos_f[1]){
+            std::cout<<light_pos.y<<std::endl;
+        }
+        light_pos={light_pos_f[0],light_pos_f[1],light_pos_f[2]};
     }
 
     void UIPass::initImGui() {

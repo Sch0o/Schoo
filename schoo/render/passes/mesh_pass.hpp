@@ -60,7 +60,7 @@ namespace schoo {
 
         void createSampler();
 
-        void UpdateViewMatrix();
+        void UpdateConstants();
 
         void initUniform();
     };

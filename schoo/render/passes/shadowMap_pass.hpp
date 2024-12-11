@@ -32,7 +32,7 @@ namespace schoo {
         void createFrameBuffer();
         void setupPipeline();
         void setupDescriptors();
-        void initUniform();
+        void updateUniform();
         void updateUniformBuffer();
         void init();
 

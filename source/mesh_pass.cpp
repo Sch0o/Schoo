@@ -91,7 +91,8 @@ namespace schoo {
     }
 
     void MeshPass::draw() {
-        UpdateViewMatrix();
+        UpdateConstants();
+
         auto &swapchain = Context::GetInstance().swapchain;
         uint32_t currentFrame = Context::GetInstance().renderer->currentFrame;
         uint32_t imageIndex = Context::GetInstance().renderer->imageIndex;
@@ -132,8 +133,11 @@ namespace schoo {
 
     }
 
-    void MeshPass::UpdateViewMatrix() {
+    void MeshPass::UpdateConstants() {
         uniformConstants.view = SchooEngine::GetInstance().camera->GetViewMatrix();
+        uniformConstants.viewPos=glm::vec4 (SchooEngine::GetInstance().camera->GetPosition(),1.0f);
+        uniformConstants.lightPos=glm::vec4(Context::GetInstance().renderer->lights.plight.position,1.0f);
+        uniformConstants.lightSpace=Context::GetInstance().renderer->passes.shadow_map_pass->uboData.depthMVP;
 
         loadUniformData();
     }

@@ -26,6 +26,8 @@ namespace schoo {
     }
 
     void ShadowMapPass::draw() {
+        updateUniform();
+
         uint32_t currentFrame = Context::GetInstance().renderer->currentFrame;
         uint32_t imageIndex = Context::GetInstance().renderer->imageIndex;
         cmdBuffers[currentFrame].reset();
@@ -72,7 +74,18 @@ namespace schoo {
         //framebuffer
         createFrameBuffer();
         //uniform
-        initUniform();
+        //uniform buffer
+        size_t bufferSize = sizeof(uboData);
+        mvp.stagingBuffer.reset(new Buffer(bufferSize,
+                                           vk::BufferUsageFlagBits::eTransferSrc,
+                                           vk::MemoryPropertyFlagBits::eHostCoherent |
+                                           vk::MemoryPropertyFlagBits::eHostVisible));
+
+        mvp.deviceBuffer.reset(new Buffer(bufferSize,
+                                          vk::BufferUsageFlagBits::eUniformBuffer |
+                                          vk::BufferUsageFlagBits::eTransferDst,
+                                          vk::MemoryPropertyFlagBits::eDeviceLocal));
+        updateUniform();
         //descriptor
         setupDescriptors();
         //pipeline
@@ -223,7 +236,7 @@ namespace schoo {
         Context::GetInstance().device.updateDescriptorSets(writers, {});
     }
 
-    void ShadowMapPass::initUniform() {
+    void ShadowMapPass::updateUniform() {
         //data
         glm::vec3 lightPos = Context::GetInstance().renderer->lights.plight.position;
         glm::mat4 depthProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.f);
@@ -232,17 +245,6 @@ namespace schoo {
         glm::mat4 depthModel = glm::mat4(1.0f);
         uboData.depthMVP = depthProjection * depthView * depthModel;
 
-        //uniform buffer
-        size_t bufferSize = sizeof(uboData);
-        mvp.stagingBuffer.reset(new Buffer(bufferSize,
-                                           vk::BufferUsageFlagBits::eTransferSrc,
-                                           vk::MemoryPropertyFlagBits::eHostCoherent |
-                                           vk::MemoryPropertyFlagBits::eHostVisible));
-
-        mvp.deviceBuffer.reset(new Buffer(bufferSize,
-                                          vk::BufferUsageFlagBits::eUniformBuffer |
-                                          vk::BufferUsageFlagBits::eTransferDst,
-                                          vk::MemoryPropertyFlagBits::eDeviceLocal));
         updateUniformBuffer();
     }
 
@@ -337,5 +339,6 @@ namespace schoo {
         }
         renderPipeline.pipeline = resultValue.value;
     }
+
 }
 
