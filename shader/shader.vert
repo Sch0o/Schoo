@@ -23,20 +23,21 @@ layout(set=0, binding=0) uniform UBO{
     vec4 viewPos;
 }ubo;
 
-layout(set=1,binding=0) uniform ModelBlock{
+layout(push_constant) uniform PushConstant{
     mat4 model;
-}uboModel;
+}primitive;
+
 
 const mat4 bias = mat4(
 0.5, 0.0, 0.0, 0.0,
 0.0, 0.5, 0.0, 0.0,
 0.0, 0.0, 1.0, 0.0,
-0.5, 0.5, 0.0, 1.0 );
+0.5, 0.5, 0.0, 1.0);
 
 void main(){
-    mat4 model=uboModel.model;
+    mat4 model=primitive.model;
 
-    FragPos=vec3(model*vec4(position,1.0));
+    FragPos=vec3(model*vec4(position, 1.0));
     Normal=mat3(transpose(inverse(model)))*normal;
 
     fragTexcoord=texCoord;
@@ -44,6 +45,6 @@ void main(){
     viewPos=ubo.viewPos.xyz;
     lightPos=ubo.lightPos.xyz;
 
-    lightSpace_Pos=bias*ubo.lightSpace*vec4(position,1.0);
+    lightSpace_Pos=bias*ubo.lightSpace*primitive.model*vec4(position, 1.0);
     gl_Position=ubo.project*ubo.view*model*vec4(position, 1.0);
 }

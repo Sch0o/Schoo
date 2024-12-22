@@ -11,7 +11,7 @@ layout(location=6) in vec4 lightSpace_pos;
 layout(location=0) out vec4 outcolor;
 
 layout(set=0, binding=1) uniform sampler2D shadowMap;
-layout(set=1, binding=1) uniform sampler2D texture0;
+layout(set=1, binding=0) uniform sampler2D texture0;
 
 float pcf(vec4 lightSpace_pos,int range){
     float shadow=0.0;
@@ -24,7 +24,7 @@ float pcf(vec4 lightSpace_pos,int range){
             if ( currentDepth > 0 && currentDepth < 1.0 )
             {
                 float closestDepth=texture(shadowMap,projCoords.xy+vec2(x,y)*texelSize).r;
-                if(currentDepth-0.0005 > closestDepth)
+                if(currentDepth-0.0012 > closestDepth)
                     shadow+=1;
             }
 
@@ -49,17 +49,39 @@ vec3 Blinn_Phong(vec3 lightDir,vec3 normal,vec3 viewDir,vec3 lightColor,float sh
     vec3 specular = specularStrength * spec * lightColor;
     return ambient+(1.0-shadow)*(diffuse+specular);
 }
+vec3 NPR(vec3 lightDir,vec3 normal,vec3 viewDir,vec3 lightColor,float shadow){
+    float shadowRange=0.24;
+    vec3 shadowColor=vec3(0.7,0.7,0.8);
+    float shadowSmooth=0.2;
+    //ambient
+    float ambientStrength=0.1;
+    vec3 ambient = ambientStrength * lightColor;
+    //diffuse
+    float halfLambert=dot(normal,lightDir)*0.5+0.5;
+//    vec3 diffuse=halfLambert>shadowRange? lightColor:shadowColor;
+    float ramp=smoothstep(0,shadowSmooth,halfLambert-shadowRange);
+    vec3 diffuse=(1-ramp)*shadowColor+ramp*lightColor;
+    //specular
+    float specularStrength = 0.5;
+    vec3 reflectDir=reflect(-lightDir,normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    vec3 specular = specularStrength * spec * lightColor;
+
+    return ambient+(1.0-shadow)*(diffuse+specular);
+}
+
 void main(){
-    vec3 color =texture(texture0,fragTexCoord).rgb;
+    vec4 baseColor =texture(texture0,fragTexCoord).rgba;
 
     vec3 lightDir =normalize(lightPos-FragPos);
     vec3 normal=normalize(Normal);
     vec3 viewDir=normalize(viewPos-FragPos);
     //shadow
-    float shadow=pcf(lightSpace_pos,1);
+    float shadow=pcf(lightSpace_pos,2);
 
-    vec3 lighting=Blinn_Phong(lightDir,normal,viewDir,lightColor,shadow)*color;
-
-    outcolor=vec4(lighting,1.0f);
+    //vec3 lighting=Blinn_Phong(lightDir,normal,viewDir,lightColor,shadow)*color;
+    vec3 lighting=NPR(lightDir,normal,viewDir,lightColor,0);
+    outcolor=(lighting,1.0f)*baseColor;
+    outcolor.a=baseColor.a;
 
 }

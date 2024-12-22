@@ -4,7 +4,7 @@
 #pragma once
 
 #include<iostream>
-#include"schoo/render/camera.hpp"
+#include"schoo/function/render/camera.hpp"
 namespace schoo{
 
     class SchooEngine{
