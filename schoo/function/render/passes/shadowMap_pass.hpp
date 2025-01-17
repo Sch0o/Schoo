@@ -13,15 +13,11 @@ namespace schoo {
         const uint32_t shadowMapSize{2048};
         const vk::Format depthFormat=vk::Format::eD16Unorm;
 
-        std::vector<vk::CommandBuffer> cmdBuffers;
-
         std::vector<FrameBuffer>framebuffers;
-        vk::RenderPass renderPass;
-        RenderPipeline renderPipeline;
+
 
         UniformBuffer mvp;
 
-        vk::DescriptorPool descriptorPool;
         vk::DescriptorSetLayout setLayout;
         vk::DescriptorSet writerDescriptorSet;
 

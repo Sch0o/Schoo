@@ -34,6 +34,12 @@ namespace schoo {
             }
         };
 
+        std::vector<vk::CommandBuffer> cmdBuffers;
+        vk::DescriptorPool descriptorPool;
+        vk::RenderPass renderPass;
+        RenderPipeline renderPipeline;
+        vk::Sampler sampler;
+
         virtual void draw() = 0;
 
     };

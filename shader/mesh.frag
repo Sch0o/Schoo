@@ -52,13 +52,12 @@ vec3 Blinn_Phong(vec3 lightDir,vec3 normal,vec3 viewDir,vec3 lightColor,float sh
 vec3 NPR(vec3 lightDir,vec3 normal,vec3 viewDir,vec3 lightColor,float shadow){
     float shadowRange=0.24;
     vec3 shadowColor=vec3(0.7,0.7,0.8);
-    float shadowSmooth=0.2;
+    float shadowSmooth=0.4;
     //ambient
     float ambientStrength=0.1;
     vec3 ambient = ambientStrength * lightColor;
     //diffuse
     float halfLambert=dot(normal,lightDir)*0.5+0.5;
-//    vec3 diffuse=halfLambert>shadowRange? lightColor:shadowColor;
     float ramp=smoothstep(0,shadowSmooth,halfLambert-shadowRange);
     vec3 diffuse=(1-ramp)*shadowColor+ramp*lightColor;
     //specular
@@ -77,11 +76,10 @@ void main(){
     vec3 normal=normalize(Normal);
     vec3 viewDir=normalize(viewPos-FragPos);
     //shadow
-    float shadow=pcf(lightSpace_pos,2);
+    float shadow=pcf(lightSpace_pos,3);
 
-    //vec3 lighting=Blinn_Phong(lightDir,normal,viewDir,lightColor,shadow)*color;
-    vec3 lighting=NPR(lightDir,normal,viewDir,lightColor,0);
-    outcolor=(lighting,1.0f)*baseColor;
-    outcolor.a=baseColor.a;
+    vec3 lighting=Blinn_Phong(lightDir,normal,viewDir,lightColor,shadow);
+    //vec3 lighting=NPR(lightDir,normal,viewDir,lightColor,shadow);
+    outcolor=vec4(lighting,1.0f)*baseColor;
 
 }

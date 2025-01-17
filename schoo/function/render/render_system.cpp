@@ -30,6 +30,7 @@ namespace schoo {
             device.destroySemaphore(imageAvaliables_[i]);
             device.destroySemaphore(imageDrawFinshs_[i]);
             device.destroySemaphore(uiDrawFinshs_[i]);
+            device.destroySemaphore(fxaaAvaliables_[i]);
             device.destroyFence(cmdAvaliableFences_[i]);
         }
 
@@ -62,7 +63,9 @@ namespace schoo {
 
         passes.shadow_map_pass->draw();
         passes.mesh_pass->draw();
+        passes.fxaa_pass->draw();
         passes.ui_pass->draw();
+
 
         vk::SubmitInfo submitInfo;
 
@@ -81,12 +84,18 @@ namespace schoo {
                 .setWaitDstStageMask(waitStages);
         Context::GetInstance().graphicsQueue.submit(submitInfo);
 
-        submitInfo.setCommandBuffers(passes.ui_pass->cmdBuffers[currentFrame])
+        waitStages={vk::PipelineStageFlagBits::eColorAttachmentOutput};
+        submitInfo.setCommandBuffers(passes.fxaa_pass->cmdBuffers[currentFrame])
                 .setWaitSemaphores(imageDrawFinshs_[currentFrame])
+                .setSignalSemaphores(fxaaAvaliables_[currentFrame])
+                .setWaitDstStageMask(waitStages);
+        Context::GetInstance().graphicsQueue.submit(submitInfo);
+
+        submitInfo.setCommandBuffers(passes.ui_pass->cmdBuffers[currentFrame])
+                .setWaitSemaphores(fxaaAvaliables_[currentFrame])
                 .setSignalSemaphores(uiDrawFinshs_[currentFrame])
                 .setWaitDstStageMask(waitStages);
         Context::GetInstance().graphicsQueue.submit(submitInfo, cmdAvaliableFences_[currentFrame]);
-
 
         vk::PresentInfoKHR presentInfoKhr;
         presentInfoKhr.setImageIndices(imageIndex)
@@ -104,6 +113,7 @@ namespace schoo {
         imageAvaliables_.resize(frameNums);
         imageDrawFinshs_.resize(frameNums);
         uiDrawFinshs_.resize(frameNums);
+        fxaaAvaliables_.resize(frameNums);
 
         vk::SemaphoreCreateInfo createInfo;
         for (int i = 0; i < frameNums; i++) {
@@ -111,6 +121,7 @@ namespace schoo {
             imageAvaliables_[i] = Context::GetInstance().device.createSemaphore(createInfo);
             imageDrawFinshs_[i] = Context::GetInstance().device.createSemaphore(createInfo);
             uiDrawFinshs_[i] = Context::GetInstance().device.createSemaphore(createInfo);
+            fxaaAvaliables_[i] = Context::GetInstance().device.createSemaphore(createInfo);
         }
     }
 
@@ -130,22 +141,29 @@ namespace schoo {
     }
 
     void Renderer::InitPasses() {
-        shaders.shadow_map_shader.reset(new Shader(ReadWholeFile(R"(..\..\shader\spv\shadow_map_vert.spv)"),
-                                                          ReadWholeFile(R"(..\..\shader\spv\shadow_map_frag.spv)")));
-        shaders.render_shader.reset(new Shader(ReadWholeFile(R"(..\..\shader\spv\render_vert.spv)"),
-                                     ReadWholeFile(R"(..\..\shader\spv\render_frag.spv)")));
+        shaders.shadow_map_shader.reset(new Shader(ReadWholeFile(R"(..\..\shader\spv\shadowmap_vert.spv)"),
+                                                          ReadWholeFile(R"(..\..\shader\spv\shadowmap_frag.spv)")));
+        shaders.render_shader.reset(new Shader(ReadWholeFile(R"(..\..\shader\spv\mesh_vert.spv)"),
+                                     ReadWholeFile(R"(..\..\shader\spv\mesh_frag.spv)")));
+        shaders.fxaa_shader.reset(new Shader(ReadWholeFile(R"(..\..\shader\spv\fxaa_vert.spv)"),
+                                               ReadWholeFile(R"(..\..\shader\spv\fxaa_frag.spv)")));
 
         passes.shadow_map_pass.reset(new ShadowMapPass());
         passes.shadow_map_pass->init();
 
         passes.mesh_pass.reset(new MeshPass());
         passes.mesh_pass->init();
+
+        passes.fxaa_pass.reset(new FxaaPass());
+        passes.fxaa_pass->init();
+
         passes.ui_pass.reset(new UIPass());
     }
 
     void Renderer::Passes::destoryPasses() {
         shadow_map_pass.reset();
         mesh_pass.reset();
+        fxaa_pass.reset();
         ui_pass.reset();
     }
 

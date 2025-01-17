@@ -47,10 +47,6 @@ namespace schoo {
         std::unique_ptr<Command> commandManager;
         VmaAllocator vmaAllocator;
 
-        vk::Sampler sampler;
-
-
-
 
         void DestroyRenderer();
 

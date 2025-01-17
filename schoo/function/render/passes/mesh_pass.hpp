@@ -7,16 +7,13 @@
 namespace schoo {
     class MeshPass : public RenderPass {
     public:
-        vk::DescriptorPool descriptorPool;
 
         vk::DescriptorSetLayout globalSetLayout;
         vk::DescriptorSetLayout pre_drawcall_setLayout;
 
         std::vector<vk::DescriptorSet> globalSets;
 
-        RenderPipeline renderPipeline;
-        std::vector<vk::Framebuffer> frameBuffers;
-        vk::RenderPass renderPass;
+        std::vector<FrameBuffer> frameBuffers;
 
 
         struct UniformConstantsData {
@@ -30,11 +27,8 @@ namespace schoo {
 
         UniformBuffer constant;
 
-        std::vector<vk::CommandBuffer> cmdBuffers;
-
         float fov = 75;
 
-        vk::Sampler sampler;
 
         MeshPass();
 
@@ -53,8 +47,6 @@ namespace schoo {
         void createUniformBuffers();
 
         void createFrameBuffers();
-
-        void loadUniformData();
 
         void createSampler();
 

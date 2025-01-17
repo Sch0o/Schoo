@@ -120,7 +120,7 @@ namespace schoo {
             device.bindImageMemory(attachment.image, attachment.memory, 0);
 
             attachment.format = depthFormat;
-            attachment.imageView = CreateImageView(attachment.image, attachment.format,
+            attachment.imageView = createImageView(attachment.image, attachment.format,
                                                    vk::ImageAspectFlagBits::eDepth);
 
 

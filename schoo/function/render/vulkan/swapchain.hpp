@@ -22,6 +22,7 @@ namespace schoo{
         std::vector<vk::Image>images;
         std::vector<vk::ImageView>imageViews;
 
+        vk::Format depthFormat =vk::Format::eD24UnormS8Uint;
         vk::Image depthImage;
         vk::DeviceMemory depthImageMemory;
         vk::ImageView depthImageView;

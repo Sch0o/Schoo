@@ -14,8 +14,8 @@ namespace schoo {
         glm::vec2 texCoord;
 
 
-        bool operator==(const Vertex&other)const{
-            return pos==other.pos&&color==other.color&&texCoord==other.texCoord;
+        bool operator==(const Vertex &other) const {
+            return pos == other.pos && color == other.color && texCoord == other.texCoord;
         }
 
         static vk::VertexInputBindingDescription getBindingDescription() {
@@ -40,17 +40,29 @@ namespace schoo {
                     .setOffset(offsetof(Vertex, color));
 
             attributeDescriptions[2].setFormat(vk::Format::eR32G32B32Sfloat)
-            .setBinding(0)
-            .setLocation(2)
-            .setOffset(offsetof(Vertex,normal));
+                    .setBinding(0)
+                    .setLocation(2)
+                    .setOffset(offsetof(Vertex, normal));
 
             attributeDescriptions[3].setFormat(vk::Format::eR32G32Sfloat)
                     .setBinding(0)
                     .setLocation(3)
-                    .setOffset(offsetof(Vertex,texCoord));
+                    .setOffset(offsetof(Vertex, texCoord));
             return attributeDescriptions;
         }
     };
+
+    static std::vector<Vertex> quadVertices = {
+            {{-1.0f, 1.0f, 0.f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},  // Top-left
+            {{1.0f, 1.0f, 0.f}, {0.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},  // Top-right
+            {{1.0f, -1.0f, 0.f}, {1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},  // Bottom-right
+            {{-1.0f, -1.0f, 0.f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}   // Bottom-left
+    };
+    static std::vector<uint32_t> quadIndices = {
+            0, 1, 2,
+            2, 3, 0
+    };
+
 }
 
 

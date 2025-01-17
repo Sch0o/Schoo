@@ -39,10 +39,8 @@ namespace schoo {
     void SchooEngine::InitRender(){
         Window::Init(width, height, "schoo");
         Context::Init(schoo::Window::GetInstance());
-
-        AssetManager::Init();
-
         auto &context = Context::GetInstance();
+        AssetManager::Init();
         context.InitCommandManager();
         context.InitSwapchain(width, height);
         context.InitRenderer();
@@ -65,8 +63,6 @@ namespace schoo {
         float currentTime=glfwGetTime();
         deltaTime=currentTime-lastTime;
         lastTime=currentTime;
-
-        //Context::GetInstance().renderer->UpdateViewMatrix();
     }
     void SchooEngine::TickRender() {
         Context::GetInstance().renderer->Render();

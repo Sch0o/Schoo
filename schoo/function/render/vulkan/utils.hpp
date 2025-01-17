@@ -14,9 +14,11 @@ namespace schoo {
 
     bool CheckPath(const std::string path);
 
-    vk::ImageView CreateImageView(vk::Image, vk::Format format, vk::ImageAspectFlags aspectFlags);
+    vk::ImageView createImageView(vk::Image, vk::Format format, vk::ImageAspectFlags aspectFlags);
 
-    vk::Image CreateImage();
+    vk::Image createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageUsageFlags usageFlags);
+
+    vk::DeviceMemory createImageMemory(vk::Image image);
 
     void transitionImageLayout(vk::ImageLayout oldLayout, vk::ImageLayout newlayout);
 
@@ -24,4 +26,9 @@ namespace schoo {
 
     void loadDataHostToDevice(const std::shared_ptr<Buffer> &hostBuffer, const std::shared_ptr<Buffer> &DeviceBuffer,
                               const void *src);
+
+    std::vector<vk::DescriptorSet>
+    allocateDescriptor(vk::DescriptorSetLayout layout, vk::DescriptorPool pool, uint32_t count);
+
+    vk::Sampler createSampler();
 }

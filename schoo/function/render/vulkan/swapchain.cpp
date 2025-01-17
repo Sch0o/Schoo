@@ -144,7 +144,7 @@ namespace schoo {
     }
 
     void Swapchain::createDepthImageView() {
-        depthImageView= CreateImageView(depthImage,vk::Format::eD24UnormS8Uint,vk::ImageAspectFlagBits::eDepth);
+        depthImageView= createImageView(depthImage,depthFormat,vk::ImageAspectFlagBits::eDepth);
     }
 
     void Swapchain::transitionImageLayoutToDepth() {

@@ -13,7 +13,6 @@ namespace schoo {
 
     void MeshPass::init() {
 
-        //cmdBuffers
         cmdBuffers = Context::GetInstance().commandManager->AllocateCmdBuffers(2);
         initUniform();
         createSampler();
@@ -22,7 +21,6 @@ namespace schoo {
         createFrameBuffers();
         setupDescriptors();
         createRenderPipeline();
-
     }
 
     MeshPass::~MeshPass() {
@@ -34,9 +32,11 @@ namespace schoo {
         constant.stagingBuffer.reset();
         constant.deviceBuffer.reset();
         for (int i = 0; i < 2; i++) {
-
             commandManager->FreeCommandbuffers(cmdBuffers[i]);
-            device.destroyFramebuffer(frameBuffers[i]);
+            device.destroyImageView(frameBuffers[i].attachments[0].imageView);
+            device.freeMemory(frameBuffers[i].attachments[0].memory);
+            device.destroyImage(frameBuffers[i].attachments[0].image);
+            device.destroyFramebuffer(frameBuffers[i].framebuffer);
         }
         device.destroyPipeline(renderPipeline.pipeline);
         device.destroyPipelineLayout(renderPipeline.layout);
@@ -51,7 +51,7 @@ namespace schoo {
         std::array<vk::AttachmentDescription, 2> descriptions;
         descriptions[0].setFormat(Context::GetInstance().swapchain->swapchainInfo.surfaceFormat.format)
                 .setInitialLayout(vk::ImageLayout::eUndefined)
-                .setFinalLayout(vk::ImageLayout::eColorAttachmentOptimal)
+                .setFinalLayout(vk::ImageLayout::eShaderReadOnlyOptimal)
                 .setLoadOp(vk::AttachmentLoadOp::eClear)
                 .setStoreOp(vk::AttachmentStoreOp::eStore)
                 .setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
@@ -80,13 +80,19 @@ namespace schoo {
         createInfo.setSubpasses(subpassDescription);
 
 
-        vk::SubpassDependency dependency;
-        dependency.setSrcSubpass(VK_SUBPASS_EXTERNAL)
+        std::array<vk::SubpassDependency, 2> dependencies;
+        dependencies[0].setSrcSubpass(VK_SUBPASS_EXTERNAL)
                 .setDstSubpass(0)
                 .setDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead)
                 .setSrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput)
                 .setDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-        createInfo.setDependencies(dependency);
+        dependencies[1].setSrcSubpass(0)
+        .setDstSubpass(VK_SUBPASS_EXTERNAL)
+        .setSrcAccessMask(vk::AccessFlagBits::eColorAttachmentWrite)
+        .setDstAccessMask(vk::AccessFlagBits::eShaderRead)
+        .setSrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput)
+        .setDstStageMask(vk::PipelineStageFlagBits::eFragmentShader);
+        createInfo.setDependencies(dependencies);
 
         renderPass = Context::GetInstance().device.createRenderPass(createInfo);
     }
@@ -110,7 +116,7 @@ namespace schoo {
             clearValues[1].depthStencil = vk::ClearDepthStencilValue(1.0f, 0);
             renderPassBeginInfo.setRenderPass(renderPass)
                     .setRenderArea(area)
-                    .setFramebuffer(frameBuffers[imageIndex])
+                    .setFramebuffer(frameBuffers[imageIndex].framebuffer)
                     .setClearValues(clearValues);
 
             cmdBuffers[currentFrame].bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
@@ -132,11 +138,14 @@ namespace schoo {
         uniformConstants.lightPos = glm::vec4(Context::GetInstance().renderer->lights.plight.position, 1.0f);
         uniformConstants.lightSpace = Context::GetInstance().renderer->passes.shadow_map_pass->uboData.depthMVP;
 
-        loadUniformData();
+        void *data = Context::GetInstance().device.mapMemory(constant.stagingBuffer->memory, 0,
+                                                             constant.stagingBuffer->size);
+        memcpy(data, &uniformConstants, constant.stagingBuffer->size);
+        Context::GetInstance().device.unmapMemory(constant.stagingBuffer->memory);
+        copyBuffer(constant.stagingBuffer->buffer, constant.deviceBuffer->buffer, constant.stagingBuffer->size, 0, 0);
     }
 
     void MeshPass::createRenderPipeline() {
-
 
         //layout
         //pushConstant
@@ -272,14 +281,6 @@ namespace schoo {
 
     }
 
-    void MeshPass::loadUniformData() {
-        void *data = Context::GetInstance().device.mapMemory(constant.stagingBuffer->memory, 0,
-                                                             constant.stagingBuffer->size);
-        memcpy(data, &uniformConstants, constant.stagingBuffer->size);
-        Context::GetInstance().device.unmapMemory(constant.stagingBuffer->memory);
-        copyBuffer(constant.stagingBuffer->buffer, constant.deviceBuffer->buffer, constant.stagingBuffer->size, 0, 0);
-    }
-
     void MeshPass::initUniform() {
 
         uniformConstants.view = SchooEngine::GetInstance().camera->GetViewMatrix();
@@ -302,16 +303,38 @@ namespace schoo {
     void MeshPass::createFrameBuffers() {
         Context &context = Context::GetInstance();
         frameBuffers.resize(context.swapchain->imageViews.size());
+
         for (int i = 0; i < frameBuffers.size(); i++) {
+            frameBuffers[i].attachments.resize(2);
+            frameBuffers[i].width = context.swapchain->width;
+            frameBuffers[i].height = context.swapchain->height;
+
+            FrameBufferAttachment colorAttachment;
+            colorAttachment.format = vk::Format::eR8G8B8A8Srgb;
+            colorAttachment.image = createImage(frameBuffers[i].width, frameBuffers[i].height, colorAttachment.format,
+                                                vk::ImageUsageFlagBits::eColorAttachment |
+                                                vk::ImageUsageFlagBits::eSampled);
+            colorAttachment.memory = createImageMemory(colorAttachment.image);
+            colorAttachment.imageView = createImageView(colorAttachment.image, colorAttachment.format,
+                                                        vk::ImageAspectFlagBits::eColor);
+            frameBuffers[i].attachments[0] = colorAttachment;
+
+            FrameBufferAttachment depthAttachment;
+            depthAttachment.format = context.swapchain->depthFormat;
+            depthAttachment.image = context.swapchain->depthImage;
+            depthAttachment.imageView = context.swapchain->depthImageView;
+            depthAttachment.memory = context.swapchain->depthImageMemory;
+            frameBuffers[i].attachments[1] = depthAttachment;
+
             vk::FramebufferCreateInfo createInfo;
-            std::array<vk::ImageView, 2> attachments = {context.swapchain->imageViews[i],
-                                                        context.swapchain->depthImageView};
+            std::array<vk::ImageView, 2> attachments = {frameBuffers[i].attachments[0].imageView,
+                                                        frameBuffers[i].attachments[1].imageView};
             createInfo.setAttachments(attachments)
-                    .setWidth(context.swapchain->width)
-                    .setHeight(context.swapchain->height)
+                    .setWidth(frameBuffers[i].width)
+                    .setHeight(frameBuffers[i].height)
                     .setRenderPass(renderPass)
                     .setLayers(1);
-            frameBuffers[i] = Context::GetInstance().device.createFramebuffer(createInfo);
+            frameBuffers[i].framebuffer = Context::GetInstance().device.createFramebuffer(createInfo);
         }
     }
 
@@ -361,22 +384,10 @@ namespace schoo {
         //allocate Sets
         //sampler
         for (auto &image: images) {
-            std::vector<vk::DescriptorSetLayout> pre_drawcall_setLayouts(1,
-                                                                         pre_drawcall_setLayout);
-            vk::DescriptorSetAllocateInfo allocateInfoModel;
-            allocateInfoModel.setSetLayouts(pre_drawcall_setLayouts)
-                    .setDescriptorPool(descriptorPool)
-                    .setDescriptorSetCount(1);
-            image.descriptorSet = Context::GetInstance().device.allocateDescriptorSets(allocateInfoModel)[0];
+            image.descriptorSet = allocateDescriptor(pre_drawcall_setLayout, descriptorPool, 1)[0];
         }
         //vp matrix and some constant
-        std::vector<vk::DescriptorSetLayout> vpSetLayouts(2, globalSetLayout);
-        vk::DescriptorSetAllocateInfo allocateInfo;
-        allocateInfo.setSetLayouts(vpSetLayouts)
-                .setDescriptorPool(descriptorPool)
-                .setDescriptorSetCount(2);
-        globalSets = Context::GetInstance().device.allocateDescriptorSets(allocateInfo);
-
+        globalSets = allocateDescriptor(globalSetLayout, descriptorPool, 2);
 
         //update sets
         vk::DescriptorBufferInfo vpBufferInfo;
