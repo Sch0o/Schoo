@@ -57,4 +57,8 @@ namespace schoo{
         return position_;
     }
 
+    glm::mat4 Camera::GetLookViewMatrix() {
+        return glm::lookAt(position_,position_+forward_,up_);
+    }
+
 }

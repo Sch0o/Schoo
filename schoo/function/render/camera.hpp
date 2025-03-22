@@ -6,6 +6,8 @@ namespace schoo{
         Camera(glm::vec3 position, float pitch, float yaw, glm::vec3 worldup);
 
         glm::mat4 GetViewMatrix();
+        glm::mat4 GetLookViewMatrix();
+        glm::mat4 GetPerspectiveMatrix() const;
         void ProcessMouseMovement(float deltaX,float deltaY);
         void MoveForward(float delatTime);
         void MoveRight(float delatTime);
@@ -26,8 +28,6 @@ namespace schoo{
         float moveSpeed=10.0f;
 
         void updateCameraVectors();
-
-
 
     };
 }

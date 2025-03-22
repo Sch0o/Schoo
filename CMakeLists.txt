@@ -33,12 +33,7 @@ endforeach()
 
 file(GLOB_RECURSE SRC ${PROJECT_SOURCE_DIR}/schoo/*.cpp)
 file(GLOB IMGUI_SOURCES ${IMGUI_DIR}/*.cpp)
-add_library(schoo_lib STATIC ${SRC} ${IMGUI_SOURCES}
-        schoo/function/render/passes/fxaa_pass.hpp
-        schoo/function/render/passes/outline_pass.hpp
-        schoo/function/reflection/typeDescriptor.hpp
-        schoo/function/reflection/memberFunction.hpp
-        schoo/function/reflection/registry.hpp)
+add_library(schoo_lib STATIC ${SRC} ${IMGUI_SOURCES})
 target_include_directories(schoo_lib PUBLIC
         ${PROJECT_SOURCE_DIR}
         ${PROJECT_SOURCE_DIR}/external

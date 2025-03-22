@@ -300,4 +300,7 @@ namespace schoo {
         indexStaging.reset();
     }
 
+    glm::mat4 GLTFModel::Node::getLocalMatrix() {
+        return glm::mat4();
+    }
 }

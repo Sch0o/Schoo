@@ -10,6 +10,10 @@ namespace schoo {
         return *instance_;
     }
 
+    void AssetManager::loadObjFile(std::string filename) {
+
+    }
+
     void AssetManager::loadGLTFFile(std::string filename) {
         tinygltf::Model glTFInput;
         tinygltf::TinyGLTF gltfContext;
@@ -34,5 +38,9 @@ namespace schoo {
 
     void AssetManager::Quit() {
         instance_.reset();
+    }
+
+    void AssetManager::AddAsset(std::string name, std::string path) {
+
     }
 }

@@ -37,11 +37,11 @@ namespace schoo {
     }
 
     void Renderer::Render() {
-        glm::vec3 lightPos(0.0f);
-        lightPos.x = cos(glfwGetTime()) * 3;
-        lightPos.y = 4;
-        lightPos.z = sin(glfwGetTime()) * 3;
-        lights.plight.position=lightPos;
+//        glm::vec3 lightPos(0.0f);
+//        lightPos.x = cos(glfwGetTime()) * 3;
+//        lightPos.y = 4;
+//        lightPos.z = sin(glfwGetTime()) * 3;
+//        lights.plight.position=lightPos;
         //render
         auto &device = Context::GetInstance().device;
         auto &swapchain = Context::GetInstance().swapchain;
