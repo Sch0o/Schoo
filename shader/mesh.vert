@@ -29,6 +29,10 @@ layout(push_constant) uniform PushConstant{
     mat4 model;
 }primitive;
 
+layout(set=1,bind=0)readonly buffer JointMatrices{
+    mat4 jointMatrices[];
+};
+
 
 const mat4 bias = mat4(
 0.5, 0.0, 0.0, 0.0,

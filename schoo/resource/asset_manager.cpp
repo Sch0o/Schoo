@@ -6,8 +6,9 @@ namespace schoo {
 
     std::unique_ptr<AssetManager>AssetManager::instance_ = nullptr;
 
-    AssetManager &AssetManager::GetInstance() {
-        return *instance_;
+    AssetManager &AssetManager::Instance() {
+        static AssetManager instance;
+        return instance;
     }
 
     void AssetManager::loadObjFile(std::string filename) {

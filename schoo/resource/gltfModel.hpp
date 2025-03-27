@@ -33,7 +33,7 @@ namespace schoo {
             int32_t skin = -1;     //store the index of th skin
             glm::mat4 matrix;
 
-            glm::mat4 getLocalMatrix();
+            glm::mat4 getLocalMatrix() const ;
 
             ~Node() {
                 for (auto &child: children) {
@@ -117,9 +117,12 @@ namespace schoo {
 
         void createBuffers(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices);
 
-        void updateAnimation();
+        glm::mat4 getNodeGlobalTransformMatrix(Node*node);
+
+        void updateJoints(Node *node);
 
         Node*nodeFromIndex(uint32_t index);
+
         Node*findNode(Node*parent,uint32_t index);
 
         void Init(tinygltf::Model &input);

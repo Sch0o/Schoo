@@ -18,7 +18,7 @@ namespace schoo{
 
         static void Init();
         static void Quit();
-        static AssetManager &GetInstance();
+        static AssetManager &Instance();
     private:
 
         AssetManager()=default;

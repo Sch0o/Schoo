@@ -43,14 +43,13 @@ namespace schoo {
         // Get the local node matrix
         // It's either made up from translation, rotation, scale or a 4x4 matrix
         if (inputNode.translation.size() == 3) {
-            node->matrix = glm::translate(node->matrix, glm::vec3(glm::make_vec3(inputNode.translation.data())));
+            node->translation = glm::make_vec3(inputNode.translation.data());
         }
         if (inputNode.rotation.size() == 4) {
-            glm::quat q = glm::make_quat(inputNode.rotation.data());
-            node->matrix *= glm::mat4(q);
+            node->rotation= glm::make_quat(inputNode.rotation.data());
         }
         if (inputNode.scale.size() == 3) {
-            node->matrix = glm::scale(node->matrix, glm::vec3(glm::make_vec3(inputNode.scale.data())));
+            node->scale = glm::make_vec3(inputNode.scale.data());
         }
         if (inputNode.matrix.size() == 16) {
             node->matrix = glm::make_mat4x4(inputNode.matrix.data());
@@ -411,7 +410,7 @@ namespace schoo {
                         }
                         break;
                     }
-                    case TINYGLTF_TYPE_SCALAR:{
+                    case TINYGLTF_TYPE_SCALAR: {
                         const auto *buf = static_cast<const float *>(dataPtr);
                         for (size_t index = 0; index < accessor.count; index++) {
                             dstSampler.outputsVec4.emplace_back(buf[index]);
@@ -458,36 +457,38 @@ namespace schoo {
         return nodeFound;
     }
 
-    void GLTFModel::updateAnimation() {
-        Animation &animation = animations[activeAnimation];
-        if (animation.currentTime > animation.end) {
-            animation.currentTime -= animation.end;
-        }
-        for (auto channel: animation.channels) {
-            auto &sampler = animation.samplers[channel.samplerIndex];
-            for (int i = 0; i < sampler.inputs.size() - 1; i++) {
-                if ((animation.currentTime >= sampler.inputs[i]) && (animation.currentTime <= sampler.inputs[i + 1])) {
-                    std::cout<<sampler.interpolation<<std::endl;
-                    float interpolation = (animation.currentTime - sampler.inputs[i]) /
-                                          (sampler.inputs[i + 1] - animation.currentTime);
-                    const auto &output1=sampler.outputsVec4[i];
-                    const auto &output2 =sampler.outputsVec4[i+1];
-                    if(channel.targetProperty=="translation"){
-                        channel.node->translation=glm::mix(output1,output2,interpolation);
-                    }else if(channel.targetProperty=="rotation"){
-                        glm::quat quat1(output1.w,output1.x,output1.y,output1.z);
-                        glm::quat quat2(output2.w,output2.x,output2.y,output2.z);
-                        channel.node->rotation=glm::normalize(glm::slerp(quat1,quat2,interpolation));
-                    }else if(channel.targetProperty=="scale"){
-                        channel.node->scale=glm::mix(sampler.outputsVec4[i],sampler.outputsVec4[i+1],interpolation);
-                    }
-                }
+    void GLTFModel::updateJoints(GLTFModel::Node *node) {
+        if (node->skin > -1) {
+            Skin skin = skins[node->skin];
+            glm::mat4 inverseGlobalTransform = glm::inverse(getNodeGlobalTransformMatrix(node));
+            std::vector <glm::mat4> jointMatrix(skin.joints.size());
+            //遍历所有关节并计算关节矩阵
+            for (size_t i = 0; i < skin.joints.size(); i++) {
+                jointMatrix[i] = getNodeGlobalTransformMatrix(skin.joints[i]) * skin.ibm[i];
+                jointMatrix[i] = inverseGlobalTransform * jointMatrix[i];
             }
+        }
 
+        //TODO 关节矩阵数据传送到GPU
+
+
+        for (auto child: node->children) {
+            updateJoints(child);
         }
     }
 
-    glm::mat4 GLTFModel::Node::getLocalMatrix() {
-        return glm::mat4(1.0f);
+    glm::mat4 GLTFModel::Node::getLocalMatrix() const {
+        return glm::translate(glm::mat4(1.0f), translation) * glm::mat4(rotation) * glm::scale(glm::mat4(1.0f), scale) *
+               matrix;
+    }
+
+    glm::mat4 GLTFModel::getNodeGlobalTransformMatrix(Node *node) {
+        glm::mat4 nodeMatrix = node->getLocalMatrix();
+        Node *currentParent = node->parent;
+        while (currentParent) {
+            nodeMatrix = currentParent->getLocalMatrix() * nodeMatrix;
+            currentParent = currentParent->parent;
+        }
+        return nodeMatrix;
     }
 }

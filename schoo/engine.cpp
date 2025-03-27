@@ -9,6 +9,7 @@
 #include"schoo/function/render/vulkan/context.hpp"
 #include "schoo/function/render/vulkan/shader.hpp"
 #include "resource/asset_manager.hpp"
+#include "schoo/function/anime/anime_system.hpp"
 
 
 
@@ -41,6 +42,7 @@ namespace schoo {
         Context::Init(schoo::Window::GetInstance());
         auto &context = Context::GetInstance();
         AssetManager::Init();
+        AnimationSystem::Init();
         context.InitCommandManager();
         context.InitSwapchain(width, height);
         context.InitRenderer();
@@ -62,6 +64,7 @@ namespace schoo {
     void SchooEngine::TickLogic(){
         float currentTime=glfwGetTime();
         deltaTime=currentTime-lastTime;
+        //std::cout<<deltaTime<<std::endl;
         lastTime=currentTime;
     }
     void SchooEngine::TickRender() {
