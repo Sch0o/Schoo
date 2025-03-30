@@ -1,3 +1,5 @@
+#include <memory>
+
 #include"schoo/function/render/vulkan/context.hpp"
 #include"schoo/function/render/passes/ui_pass.hpp"
 #include"imgui/imgui.h"
@@ -6,10 +8,10 @@
 
 namespace schoo {
     UIPass::UIPass() {
-        commandManager.reset(new Command());
+        commandManager = std::make_shared<Command>();
         createDescriptorPool();
         createRenderPass();
-        createFramebuffers();
+        createFrameBuffers();
         createCommandBuffers();
         initImGui();
     }
@@ -40,7 +42,7 @@ namespace schoo {
         descriptorPool = Context::GetInstance().device.createDescriptorPool(pool_info);
     }
 
-    void UIPass::createFramebuffers() {
+    void UIPass::createFrameBuffers() {
         Context &context = Context::GetInstance();
         frameBuffers.resize(context.swapchain->imageViews.size());
         for (int i = 0; i < frameBuffers.size(); i++) {

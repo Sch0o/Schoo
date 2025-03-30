@@ -54,6 +54,7 @@ namespace schoo {
         context.DestroyRenderer();
         context.DestroyCommandManager();
         context.QuitSwapchain();
+        AnimationSystem::Quit();
         AssetManager::Quit();
         Context::Quit();
         Window::Quit();
@@ -66,6 +67,7 @@ namespace schoo {
         deltaTime=currentTime-lastTime;
         //std::cout<<deltaTime<<std::endl;
         lastTime=currentTime;
+        AnimationSystem::Instance().updateAnimation(deltaTime);
     }
     void SchooEngine::TickRender() {
         Context::GetInstance().renderer->Render();

@@ -135,7 +135,7 @@ namespace schoo {
     }
 
     void Renderer::loadScene() {
-        AssetManager::GetInstance().loadGLTFFile(R"(..\..\assets\models\nagant2\nagant2.gltf)");
+        AssetManager::Instance().loadGLTFFile(R"(..\..\assets\models\nagant2\nagant2.gltf)");
 
         lights.plight={glm::vec3(0,4,2),glm::vec3(1.0,1.0,1.0)};
     }

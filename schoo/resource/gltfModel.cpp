@@ -2,29 +2,39 @@
 #include"function/render/vulkan/utils.hpp"
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/quaternion.hpp>
+#include <memory>
 
 
 namespace schoo {
 
     void GLTFModel::Init(tinygltf::Model &input) {
-        std::vector<uint32_t> indices;
-        std::vector<Vertex> vertices;
+
 
         loadImages(input);
         loadMaterials(input);
         loadTextures(input);
+        loadNodes(input);
         loadSkins(input);
         loadAnimations(input);
-        //updateAnimation();
 
-        const tinygltf::Scene &scene = input.scenes[0];
-        for (int i: scene.nodes) {
-            const tinygltf::Node node = input.nodes[i];
-            loadNode(node, input, nullptr, indices, vertices);
+        //TODO 写个计时器
+        std::cout << "---model load complete---" << std::endl;
+
+    }
+
+    GLTFModel::~GLTFModel() {
+        for (auto node: nodes) {
+            delete node;
         }
-        createBuffers(vertices, indices);
-
+        for (auto &image: images) {
+            image.texture.reset();
+        }
+        for (auto &skin: skins) {
+            skin.jmStagingBuffer.reset();
+            skin.jointMatricesBuffer.reset();
+        }
+        vertexBuffer.reset();
+        indexBuffer.reset();
     }
 
     void GLTFModel::loadTextures(tinygltf::Model &input) {
@@ -34,11 +44,26 @@ namespace schoo {
         }
     }
 
-    void GLTFModel::loadNode(const tinygltf::Node &inputNode, const tinygltf::Model &input, Node *parent,
-                             std::vector<uint32_t> &indices, std::vector<Vertex> &vertices) {
+    void GLTFModel::loadNodes(tinygltf::Model &input) {
+        std::vector<uint32_t> indices;
+        std::vector<Vertex> vertices;
+        const tinygltf::Scene &scene = input.scenes[0];
+        for (int i: scene.nodes) {
+            const tinygltf::Node node = input.nodes[i];
+            loadNode(node, i, input, nullptr, indices, vertices);
+        }
+        createBuffers(vertices, indices);
+    }
+
+    void
+    GLTFModel::loadNode(const tinygltf::Node &inputNode, uint32_t nodeIndex, const tinygltf::Model &input, Node *parent,
+                        std::vector<uint32_t> &indices, std::vector<Vertex> &vertices) {
         Node *node = new Node{};
         node->matrix = glm::mat4(1.0f);
         node->parent = parent;
+        node->index = nodeIndex;
+        node->skin = inputNode.skin;
+        node->name = inputNode.name;
 
         // Get the local node matrix
         // It's either made up from translation, rotation, scale or a 4x4 matrix
@@ -46,7 +71,7 @@ namespace schoo {
             node->translation = glm::make_vec3(inputNode.translation.data());
         }
         if (inputNode.rotation.size() == 4) {
-            node->rotation= glm::make_quat(inputNode.rotation.data());
+            node->rotation = glm::make_quat(inputNode.rotation.data());
         }
         if (inputNode.scale.size() == 3) {
             node->scale = glm::make_vec3(inputNode.scale.data());
@@ -57,7 +82,7 @@ namespace schoo {
         // Load node's children
         if (!inputNode.children.empty()) {
             for (int i: inputNode.children) {
-                loadNode(input.nodes[i], input, node, indices, vertices);
+                loadNode(input.nodes[i], i, input, node, indices, vertices);
             }
         }
 
@@ -138,7 +163,7 @@ namespace schoo {
                         vert.jointIndices = hasSkin ? glm::vec4(glm::make_vec4(&jointIndicesBuffer[v * 4])) : glm::vec4(
                                 0.0f);
                         vert.jointWeights = hasSkin ? glm::vec4(glm::make_vec4(&jointWeightsBuffer[v * 4])) : glm::vec4(
-                                0.0f);
+                                1.0f,0.0f,0.0f,0.0f);
                         vertices.push_back(vert);
                     }
                 }
@@ -153,24 +178,24 @@ namespace schoo {
                     // glTF supports different component types of indices
                     switch (accessor.componentType) {
                         case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
-                            const uint32_t *buf = reinterpret_cast<const uint32_t *>(&buffer.data[accessor.byteOffset +
-                                                                                                  bufferView.byteOffset]);
+                            const auto *buf = reinterpret_cast<const uint32_t *>(&buffer.data[accessor.byteOffset +
+                                                                                              bufferView.byteOffset]);
                             for (size_t index = 0; index < accessor.count; index++) {
                                 indices.push_back(buf[index] + vertexStart);
                             }
                             break;
                         }
                         case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
-                            const uint16_t *buf = reinterpret_cast<const uint16_t *>(&buffer.data[accessor.byteOffset +
-                                                                                                  bufferView.byteOffset]);
+                            const auto *buf = reinterpret_cast<const uint16_t *>(&buffer.data[accessor.byteOffset +
+                                                                                              bufferView.byteOffset]);
                             for (size_t index = 0; index < accessor.count; index++) {
                                 indices.push_back(buf[index] + vertexStart);
                             }
                             break;
                         }
                         case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
-                            const uint8_t *buf = reinterpret_cast<const uint8_t *>(&buffer.data[accessor.byteOffset +
-                                                                                                bufferView.byteOffset]);
+                            const auto *buf = reinterpret_cast<const uint8_t *>(&buffer.data[accessor.byteOffset +
+                                                                                             bufferView.byteOffset]);
                             for (size_t index = 0; index < accessor.count; index++) {
                                 indices.push_back(buf[index] + vertexStart);
                             }
@@ -213,7 +238,7 @@ namespace schoo {
                 buffer = new unsigned char[bufferSize];
                 unsigned char *rgba = buffer;
                 unsigned char *rgb = &glTFImage.image[0];
-                for (size_t i = 0; i < glTFImage.width * glTFImage.height; ++i) {
+                for (size_t j = 0; j < glTFImage.width * glTFImage.height; ++j) {
                     memcpy(rgba, rgb, sizeof(unsigned char) * 3);
                     rgba += 4;
                     rgb += 3;
@@ -224,7 +249,7 @@ namespace schoo {
                 bufferSize = glTFImage.image.size();
             }
             // Load texture from image buffer
-            images[i].texture.reset(new Texture(buffer, bufferSize, glTFImage.width, glTFImage.height));
+            images[i].texture = std::make_shared<Texture>(buffer, bufferSize, glTFImage.width, glTFImage.height);
 
             if (deleteBuffer) {
                 delete[] buffer;
@@ -255,7 +280,7 @@ namespace schoo {
         if (!node->mesh.primitives.empty()) {
             // Pass the node's matrix via push constants
             // Traverse the node hierarchy to the top-most parent to get the final matrix of the current node
-            glm::mat4 nodeMatrix = node->matrix;
+            glm::mat4 nodeMatrix = node->getLocalMatrix();
             Node *currentParent = node->parent;
             while (currentParent) {
                 nodeMatrix = currentParent->matrix * nodeMatrix;
@@ -264,14 +289,23 @@ namespace schoo {
             // Pass the final matrix to the vertex shader using push constants
             commandBuffer.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(glm::mat4),
                                         &nodeMatrix);
+            //commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,pipelineLayout)
             for (Primitive &primitive: node->mesh.primitives) {
                 if (primitive.indexCount > 0) {
+//                    std::cout << node->skin << std::endl;
+//                    std::cout << node->name << std::endl;
                     // Get the texture index for this primitive
                     Texture2D texture = textures[materials[primitive.materialIndex].baseColorTextureIndex];
                     // Bind the descriptor for the current primitive's texture
                     if (passStage == 1)
                         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 1, 1,
                                                          &images[texture.imageIndex].descriptorSet, 0, nullptr);
+
+                    uint32_t skin_index = node->skin != -1 ? node->skin : skins.size() - 1;
+
+                    commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 2, 1,
+                                                     &skins[skin_index].descriptorSet, 0,
+                                                     nullptr);
                     commandBuffer.drawIndexed(primitive.indexCount, 1, primitive.firstIndex, 0, 0);
                 }
             }
@@ -290,16 +324,6 @@ namespace schoo {
         }
     }
 
-    GLTFModel::~GLTFModel() {
-        for (auto node: nodes) {
-            delete node;
-        }
-        for (auto &image: images) {
-            image.texture.reset();
-        }
-        vertexBuffer.reset();
-        indexBuffer.reset();
-    }
 
     void GLTFModel::createBuffers(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices) {
         //vertexBuffer;
@@ -328,11 +352,20 @@ namespace schoo {
     }
 
     //TODO 优化：不存储ibm,直接存入buffer中
+    //
     void GLTFModel::loadSkins(tinygltf::Model &input) {
         skins.resize(input.skins.size());
         //traversal every skin
         for (size_t i{0}; i < input.skins.size(); i++) {
             tinygltf::Skin gltfSkin = input.skins[i];
+
+            skins[i].skeletonRoot = nodeFromIndex(gltfSkin.skeleton);
+            for (int jointIndex: gltfSkin.joints) {
+                Node *node = nodeFromIndex(jointIndex);
+                if (node) {
+                    skins[i].joints.push_back(node);
+                }
+            }
             if (gltfSkin.inverseBindMatrices > -1) {
                 skins[i].name = gltfSkin.name;
                 const tinygltf::Accessor &accessor = input.accessors[gltfSkin.inverseBindMatrices];
@@ -343,18 +376,36 @@ namespace schoo {
                 vk::DeviceSize bufferSize = accessor.count * sizeof(glm::mat4);
                 memcpy(skins[i].ibm.data(), &buffer.data[bufferView.byteOffset + accessor.byteOffset],
                        bufferSize);
-                auto ibmStaging = std::make_shared<Buffer>(bufferSize, vk::BufferUsageFlagBits::eTransferSrc,
-                                                           vk::MemoryPropertyFlagBits::eHostVisible |
-                                                           vk::MemoryPropertyFlagBits::eHostCoherent);
+                //初始化buffer
+                skins[i].jmStagingBuffer = std::make_shared<Buffer>(bufferSize, vk::BufferUsageFlagBits::eTransferSrc,
+                                                                    vk::MemoryPropertyFlagBits::eHostVisible |
+                                                                    vk::MemoryPropertyFlagBits::eHostCoherent);
 
                 skins[i].jointMatricesBuffer = std::make_shared<Buffer>(bufferSize,
                                                                         vk::BufferUsageFlagBits::eTransferDst
                                                                         | vk::BufferUsageFlagBits::eStorageBuffer,
                                                                         vk::MemoryPropertyFlagBits::eDeviceLocal);
-                loadDataHostToDevice(ibmStaging, skins[i].jointMatricesBuffer, skins[i].ibm.data());
-                ibmStaging.reset();
+                loadDataHostToDevice(skins[i].jmStagingBuffer, skins[i].jointMatricesBuffer, skins[i].ibm.data());
+
             }
         }
+        //for 没有skin的node
+        Skin skin{};
+        skin.ibm.resize(1);
+        skin.ibm[0] = glm::mat4(1.0f);
+        vk::DeviceSize bufferSize = sizeof(glm::mat4);
+        //初始化buffer
+        skin.jmStagingBuffer = std::make_shared<Buffer>(bufferSize, vk::BufferUsageFlagBits::eTransferSrc,
+                                                        vk::MemoryPropertyFlagBits::eHostVisible |
+                                                        vk::MemoryPropertyFlagBits::eHostCoherent);
+
+        skin.jointMatricesBuffer = std::make_shared<Buffer>(bufferSize,
+                                                            vk::BufferUsageFlagBits::eTransferDst
+                                                            | vk::BufferUsageFlagBits::eStorageBuffer,
+                                                            vk::MemoryPropertyFlagBits::eDeviceLocal);
+        loadDataHostToDevice(skin.jmStagingBuffer, skin.jointMatricesBuffer, skin.ibm.data());
+        skins.push_back(skin);
+
     }
 
     void GLTFModel::loadAnimations(tinygltf::Model &input) {
@@ -427,10 +478,10 @@ namespace schoo {
             animations[i].channels.resize(gltfAnimation.channels.size());
             for (size_t j = 0; j < gltfAnimation.channels.size(); j++) {
                 auto &gltfChannel = gltfAnimation.channels[j];
-                auto &dstChannel = animations[i].channels[j];
-                dstChannel.targetProperty = gltfChannel.target_path;
-                dstChannel.samplerIndex = gltfChannel.sampler;
-                dstChannel.node = nodeFromIndex(gltfChannel.target_node);
+                auto &dstChannels = animations[i].channels;
+                dstChannels[j].targetProperty = gltfChannel.target_path;
+                dstChannels[j].samplerIndex = gltfChannel.sampler;
+                dstChannels[j].node = nodeFromIndex(gltfChannel.target_node);
             }
         }
     }
@@ -458,30 +509,35 @@ namespace schoo {
     }
 
     void GLTFModel::updateJoints(GLTFModel::Node *node) {
-        if (node->skin > -1) {
+        if (node->skin != -1) {
             Skin skin = skins[node->skin];
+            //每个关节都存在一个对应的关节矩阵
+            std::vector<glm::mat4> jointMatrix(skin.joints.size());
+            //get node's全局变换矩阵，即model matrix，inverse是为了抵消着色器中的model matrix
             glm::mat4 inverseGlobalTransform = glm::inverse(getNodeGlobalTransformMatrix(node));
-            std::vector <glm::mat4> jointMatrix(skin.joints.size());
+
             //遍历所有关节并计算关节矩阵
             for (size_t i = 0; i < skin.joints.size(); i++) {
+                //得到bone的全局变换矩阵（关节空间->模型空间），vertex经ibm转到bone的向量空间，然后
                 jointMatrix[i] = getNodeGlobalTransformMatrix(skin.joints[i]) * skin.ibm[i];
                 jointMatrix[i] = inverseGlobalTransform * jointMatrix[i];
             }
+            //TODO 关节矩阵数据传送到GPU
+            loadDataHostToDevice(skin.jmStagingBuffer, skin.jointMatricesBuffer, jointMatrix.data());
         }
-
-        //TODO 关节矩阵数据传送到GPU
-
 
         for (auto child: node->children) {
             updateJoints(child);
         }
     }
 
+    //计算一个节点的局部变换矩阵
     glm::mat4 GLTFModel::Node::getLocalMatrix() const {
         return glm::translate(glm::mat4(1.0f), translation) * glm::mat4(rotation) * glm::scale(glm::mat4(1.0f), scale) *
                matrix;
     }
 
+    //递归得到节点/关节的全局变换矩阵
     glm::mat4 GLTFModel::getNodeGlobalTransformMatrix(Node *node) {
         glm::mat4 nodeMatrix = node->getLocalMatrix();
         Node *currentParent = node->parent;

@@ -29,9 +29,9 @@ layout(push_constant) uniform PushConstant{
     mat4 model;
 }primitive;
 
-layout(set=1,bind=0)readonly buffer JointMatrices{
+layout(set=2, binding=0) readonly buffer JointMatricesBlock{
     mat4 jointMatrices[];
-};
+}jmBuffer;
 
 
 const mat4 bias = mat4(
@@ -43,6 +43,13 @@ const mat4 bias = mat4(
 void main(){
     mat4 model=primitive.model;
 
+    //linear combination
+    mat4 skinMat=jointWeights.x*jmBuffer.jointMatrices[int(jointIndices.x)]
+    +jointWeights.y*jmBuffer.jointMatrices[int(jointIndices.y)]
+    +jointWeights.z*jmBuffer.jointMatrices[int(jointIndices.z)]
+    +jointWeights.w*jmBuffer.jointMatrices[int(jointIndices.w)];
+
+
     FragPos=vec3(model*vec4(position, 1.0));
     Normal=mat3(transpose(inverse(model)))*normal;
 
@@ -52,5 +59,6 @@ void main(){
     lightPos=ubo.lightPos.xyz;
 
     lightSpace_Pos=bias*ubo.lightSpace*primitive.model*vec4(position, 1.0);
-    gl_Position=ubo.project*ubo.view*model*vec4(position, 1.0);
+    gl_Position=ubo.project*ubo.view*model*skinMat*vec4(position, 1.0);
+    //gl_Position=ubo.project*ubo.view*model*vec4(position, 1.0);
 }

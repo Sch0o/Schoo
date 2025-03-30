@@ -197,8 +197,8 @@ void main(){
     //float shadow=pcf(lightSpace_pos, 3);
     float shadow=pcss(lightSpace_pos);
     //light
-    vec3 lighting=Blinn_Phong(lightDir, normal, viewDir, lightColor, shadow);
-    //vec3 lighting=NPR(lightDir,normal,viewDir,lightColor,shadow);
+    //vec3 lighting=Blinn_Phong(lightDir, normal, viewDir, lightColor, shadow);
+    vec3 lighting=NPR(lightDir,normal,viewDir,lightColor,0);
     outcolor=vec4(lighting, 1.0f)*baseColor;
 
 }

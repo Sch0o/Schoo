@@ -141,4 +141,16 @@ namespace schoo {
         device.bindImageMemory(image, memory, 0);
         return memory;
     }
+
+    vk::DescriptorSetLayoutBinding
+    createDSLayoutBinding(uint32_t binding_index, vk::DescriptorType type, vk::ShaderStageFlagBits stage,
+                          uint32_t count) {
+        vk::DescriptorSetLayoutBinding binding{};
+        binding.setBinding(binding_index)
+                .setDescriptorType(type)
+                .setStageFlags(stage)
+                .setDescriptorCount(count);
+        return binding;
+    }
+
 }

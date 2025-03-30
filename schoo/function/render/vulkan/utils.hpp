@@ -31,4 +31,8 @@ namespace schoo {
     allocateDescriptor(vk::DescriptorSetLayout layout, vk::DescriptorPool pool, uint32_t count);
 
     vk::Sampler createSampler();
+
+    vk:: DescriptorPoolSize createDescriptorPoolSize(vk::DescriptorType type,uint32_t count);
+
+    vk::DescriptorSetLayoutBinding createDSLayoutBinding(uint32_t binding,vk::DescriptorType type,vk::ShaderStageFlagBits stage,uint32_t count);
 }

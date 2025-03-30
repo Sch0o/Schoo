@@ -23,6 +23,7 @@ namespace schoo {
         };
 
         struct Node {
+            std::string name;
             Node *parent;
             uint32_t index;
             std::vector<Node *> children;
@@ -47,7 +48,8 @@ namespace schoo {
             Node *skeletonRoot{nullptr};
             std::vector<glm::mat4> ibm; //inverseBindMatrices;
             std::vector<Node *> joints;
-            std::shared_ptr<Buffer> jointMatricesBuffer;
+            std::shared_ptr<Buffer> jmStagingBuffer{nullptr};
+            std::shared_ptr<Buffer> jointMatricesBuffer{nullptr};
             vk::DescriptorSet descriptorSet;
         };
 
@@ -84,6 +86,11 @@ namespace schoo {
             int32_t imageIndex;
         };
 
+        struct PushConstantBlock {
+            glm::mat4 model;
+            int hasSkin;
+        };
+
         std::shared_ptr<Buffer> vertexBuffer;
         std::shared_ptr<Buffer> indexBuffer;
         std::vector<Image> images;
@@ -92,7 +99,6 @@ namespace schoo {
         std::vector<Node *> nodes;
         std::vector<Skin> skins;
         std::vector<Animation>animations;
-        uint32_t activeAnimation;
 
         ~GLTFModel();
 
@@ -108,7 +114,9 @@ namespace schoo {
 
         void loadAnimations(tinygltf::Model &input);
 
-        void loadNode(const tinygltf::Node &inputNode, const tinygltf::Model &input, Node *parent,
+        void loadNodes(tinygltf::Model &input);
+
+        void loadNode(const tinygltf::Node &inputNode,uint32_t index,const tinygltf::Model &input, Node *parent,
                       std::vector<uint32_t> &indices, std::vector<Vertex> &vertices);
 
         void draw(vk::CommandBuffer commandBuffer, vk::PipelineLayout pipelineLayout, int passStage);
@@ -117,7 +125,7 @@ namespace schoo {
 
         void createBuffers(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices);
 
-        glm::mat4 getNodeGlobalTransformMatrix(Node*node);
+        static glm::mat4 getNodeGlobalTransformMatrix(Node*node);
 
         void updateJoints(Node *node);
 

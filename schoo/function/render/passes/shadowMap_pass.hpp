@@ -19,6 +19,8 @@ namespace schoo {
         UniformBuffer mvp;
 
         vk::DescriptorSetLayout setLayout;
+        vk::DescriptorSetLayout jointSetLayout;
+        vk::DescriptorSetLayout emptyLayout;
         vk::DescriptorSet writerDescriptorSet;
 
         void draw() override;

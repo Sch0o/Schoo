@@ -87,11 +87,11 @@ namespace schoo {
                 .setSrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput)
                 .setDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
         dependencies[1].setSrcSubpass(0)
-        .setDstSubpass(VK_SUBPASS_EXTERNAL)
-        .setSrcAccessMask(vk::AccessFlagBits::eColorAttachmentWrite)
-        .setDstAccessMask(vk::AccessFlagBits::eShaderRead)
-        .setSrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput)
-        .setDstStageMask(vk::PipelineStageFlagBits::eFragmentShader);
+                .setDstSubpass(VK_SUBPASS_EXTERNAL)
+                .setSrcAccessMask(vk::AccessFlagBits::eColorAttachmentWrite)
+                .setDstAccessMask(vk::AccessFlagBits::eShaderRead)
+                .setSrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput)
+                .setDstStageMask(vk::PipelineStageFlagBits::eFragmentShader);
         createInfo.setDependencies(dependencies);
 
         renderPass = Context::GetInstance().device.createRenderPass(createInfo);
@@ -124,7 +124,7 @@ namespace schoo {
                                                         globalSets[imageIndex], {});
 
             cmdBuffers[currentFrame].beginRenderPass(renderPassBeginInfo, {});
-            AssetManager::GetInstance().glTFModel.draw(cmdBuffers[currentFrame], renderPipeline.layout, 1);
+            AssetManager::Instance().glTFModel.draw(cmdBuffers[currentFrame], renderPipeline.layout, 1);
             cmdBuffers[currentFrame].endRenderPass();
 
         }
@@ -138,11 +138,7 @@ namespace schoo {
         uniformConstants.lightPos = glm::vec4(Context::GetInstance().renderer->lights.plight.position, 1.0f);
         uniformConstants.lightSpace = Context::GetInstance().renderer->passes.shadow_map_pass->uboData.depthMVP;
 
-        void *data = Context::GetInstance().device.mapMemory(constant.stagingBuffer->memory, 0,
-                                                             constant.stagingBuffer->size);
-        memcpy(data, &uniformConstants, constant.stagingBuffer->size);
-        Context::GetInstance().device.unmapMemory(constant.stagingBuffer->memory);
-        copyBuffer(constant.stagingBuffer->buffer, constant.deviceBuffer->buffer, constant.stagingBuffer->size, 0, 0);
+        loadDataHostToDevice(constant.stagingBuffer, constant.deviceBuffer, &uniformConstants);
     }
 
     void MeshPass::createRenderPipeline() {
@@ -152,8 +148,9 @@ namespace schoo {
         vk::PushConstantRange pushConstantRange;
         pushConstantRange.setStageFlags(vk::ShaderStageFlagBits::eVertex)
                 .setOffset(0).setSize(sizeof(glm::mat4));
-
-        std::array<vk::DescriptorSetLayout, 2> setLayouts = {globalSetLayout, pre_drawcall_setLayout};
+        auto &renderer = Context::GetInstance().renderer;
+        vk::DescriptorSetLayout jointSetLayout = renderer->passes.shadow_map_pass->jointSetLayout;
+        std::array setLayouts = {globalSetLayout, pre_drawcall_setLayout, jointSetLayout};
         vk::PipelineLayoutCreateInfo layoutCreateInfo;
         layoutCreateInfo.setSetLayouts(setLayouts)
                 .setPushConstantRanges(pushConstantRange);
@@ -269,15 +266,15 @@ namespace schoo {
     void MeshPass::createUniformBuffers() {
         size_t bufferSize = sizeof(uniformConstants);
         //std::cout << "UniformSize:"<<bufferSize<<std::endl;
-        constant.stagingBuffer.reset(new Buffer(bufferSize,
-                                                vk::BufferUsageFlagBits::eTransferSrc,
-                                                vk::MemoryPropertyFlagBits::eHostCoherent |
-                                                vk::MemoryPropertyFlagBits::eHostVisible));
+        constant.stagingBuffer = std::make_shared<Buffer>(bufferSize,
+                                                          vk::BufferUsageFlagBits::eTransferSrc,
+                                                          vk::MemoryPropertyFlagBits::eHostCoherent |
+                                                          vk::MemoryPropertyFlagBits::eHostVisible);
 
-        constant.deviceBuffer.reset(new Buffer(bufferSize,
-                                               vk::BufferUsageFlagBits::eUniformBuffer |
-                                               vk::BufferUsageFlagBits::eTransferDst,
-                                               vk::MemoryPropertyFlagBits::eDeviceLocal));
+        constant.deviceBuffer = std::make_shared<Buffer>(bufferSize,
+                                                         vk::BufferUsageFlagBits::eUniformBuffer |
+                                                         vk::BufferUsageFlagBits::eTransferDst,
+                                                         vk::MemoryPropertyFlagBits::eDeviceLocal);
 
     }
 
@@ -340,17 +337,18 @@ namespace schoo {
 
     void MeshPass::setupDescriptors() {
 
-        auto &images = AssetManager::GetInstance().glTFModel.images;
+        auto &images = AssetManager::Instance().glTFModel.images;
+        auto &skins = AssetManager::Instance().glTFModel.skins;
 
         int image_size = images.size();
 
         vk::DescriptorPoolCreateInfo createInfo;
-        std::array<vk::DescriptorPoolSize, 2> poolSizes;
-        poolSizes[0].setType(vk::DescriptorType::eUniformBuffer)
-                .setDescriptorCount(3);
-        poolSizes[1].setType(vk::DescriptorType::eCombinedImageSampler)
-                .setDescriptorCount(2 + image_size);
-        createInfo.setMaxSets(2 + image_size)
+        std::array poolSizes = {
+                vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 3),
+                vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 2 + images.size()),
+                vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 2 + skins.size())
+        };
+        createInfo.setMaxSets(2 + images.size() + skins.size())
                 .setPoolSizes(poolSizes);
         descriptorPool = Context::GetInstance().device.createDescriptorPool(createInfo);
 

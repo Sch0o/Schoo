@@ -23,7 +23,7 @@ namespace schoo {
 
         static void check_vk_result(VkResult err);
 
-        void createFramebuffers();
+        void createFrameBuffers();
 
         void drawWindows();
 

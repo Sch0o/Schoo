@@ -1,4 +1,6 @@
 #include"fxaa_pass.hpp"
+
+#include <memory>
 #include"function/render/vulkan/context.hpp"
 #include"function/render/vulkan/utils.hpp"
 #include"function/render/vulkan/buffer.hpp"
@@ -74,21 +76,21 @@ namespace schoo {
 
         vk::DeviceSize bufferSize = sizeof(quadVertices[0]) * quadVertices.size();
         std::shared_ptr<Buffer> stagingBuffer;
-        stagingBuffer.reset(new Buffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc,
+        stagingBuffer = std::make_shared<Buffer>(bufferSize, vk::BufferUsageFlagBits::eTransferSrc,
                                        vk::MemoryPropertyFlagBits::eHostVisible |
-                                       vk::MemoryPropertyFlagBits::eHostCoherent));
-        vertexBuffer.reset(new Buffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst
+                                       vk::MemoryPropertyFlagBits::eHostCoherent);
+        vertexBuffer = std::make_shared<Buffer>(bufferSize, vk::BufferUsageFlagBits::eTransferDst
                                                   | vk::BufferUsageFlagBits::eVertexBuffer,
-                                      vk::MemoryPropertyFlagBits::eDeviceLocal));
+                                      vk::MemoryPropertyFlagBits::eDeviceLocal);
         loadDataHostToDevice(stagingBuffer, vertexBuffer, quadVertices.data());
 
         bufferSize = sizeof(quadIndices[0]) * quadIndices.size();
-        stagingBuffer.reset(new Buffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc,
+        stagingBuffer = std::make_shared<Buffer>(bufferSize, vk::BufferUsageFlagBits::eTransferSrc,
                                        vk::MemoryPropertyFlagBits::eHostVisible |
-                                       vk::MemoryPropertyFlagBits::eHostCoherent));
-        indexBuffer.reset(new Buffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst
+                                       vk::MemoryPropertyFlagBits::eHostCoherent);
+        indexBuffer = std::make_shared<Buffer>(bufferSize, vk::BufferUsageFlagBits::eTransferDst
                                                  | vk::BufferUsageFlagBits::eIndexBuffer,
-                                     vk::MemoryPropertyFlagBits::eDeviceLocal));
+                                     vk::MemoryPropertyFlagBits::eDeviceLocal);
         loadDataHostToDevice(stagingBuffer, indexBuffer, quadIndices.data());
 
         stagingBuffer.reset();
@@ -243,9 +245,9 @@ namespace schoo {
     void FxaaPass::setupDescriptors() {
 
         vk::DescriptorPoolCreateInfo createInfo;
-        std::array<vk::DescriptorPoolSize, 1> poolSizes;
-        poolSizes[0].setType(vk::DescriptorType::eCombinedImageSampler)
-                .setDescriptorCount(2);
+        std::array poolSizes={
+                vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler,2)
+        };
         createInfo.setMaxSets(2)
                 .setPoolSizes(poolSizes);
         descriptorPool = Context::GetInstance().device.createDescriptorPool(createInfo);

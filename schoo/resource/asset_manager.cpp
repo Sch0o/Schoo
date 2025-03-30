@@ -7,8 +7,8 @@ namespace schoo {
     std::unique_ptr<AssetManager>AssetManager::instance_ = nullptr;
 
     AssetManager &AssetManager::Instance() {
-        static AssetManager instance;
-        return instance;
+        //static AssetManager instance;
+        return *instance_;
     }
 
     void AssetManager::loadObjFile(std::string filename) {
@@ -22,8 +22,12 @@ namespace schoo {
 
         bool fileLoaded = gltfContext.LoadASCIIFromFile(&glTFInput, &error, &warning, filename);
 
-        std::cout << warning << std::endl;
-        std::cout << error << std::endl;
+        if(!warning.empty()){
+            std::cout << "load glTF warning: "+warning << std::endl;
+        }
+        if(!error.empty()){
+            std::cout << "load glTF error: "+ error << std::endl;
+        }
 
         if (fileLoaded) {
             glTFModel.Init(glTFInput);

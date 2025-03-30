@@ -4,7 +4,7 @@
 #include"resource/asset_manager.hpp"
 
 namespace schoo {
-    ShadowMapPass::~ShadowMapPass(){
+    ShadowMapPass::~ShadowMapPass() {
         auto &commandManager = Context::GetInstance().commandManager;
         auto &device = Context::GetInstance().device;
 
@@ -13,7 +13,7 @@ namespace schoo {
         for (int i = 0; i < 2; i++) {
             commandManager->FreeCommandbuffers(cmdBuffers[i]);
             device.destroyFramebuffer(framebuffers[i].framebuffer);
-            for(auto&attachment:framebuffers[i].attachments){
+            for (auto &attachment: framebuffers[i].attachments) {
                 device.destroyImageView(attachment.imageView);
                 device.destroyImage(attachment.image);
                 device.freeMemory(attachment.memory);
@@ -23,6 +23,8 @@ namespace schoo {
         device.destroyPipelineLayout(renderPipeline.layout);
         device.destroyRenderPass(renderPass);
         device.destroyDescriptorSetLayout(setLayout);
+        device.destroyDescriptorSetLayout(jointSetLayout);
+        device.destroyDescriptorSetLayout(emptyLayout);
     }
 
     void ShadowMapPass::draw() {
@@ -50,7 +52,7 @@ namespace schoo {
                                                         writerDescriptorSet, {});
 
             cmdBuffers[currentFrame].beginRenderPass(renderPassBeginInfo, {});
-            AssetManager::GetInstance().glTFModel.draw(cmdBuffers[currentFrame],renderPipeline.layout,0);
+            AssetManager::Instance().glTFModel.draw(cmdBuffers[currentFrame], renderPipeline.layout, 0);
             cmdBuffers[currentFrame].endRenderPass();
 
         }
@@ -66,15 +68,15 @@ namespace schoo {
         createFrameBuffer();
         //uniform buffer
         size_t bufferSize = sizeof(uboData);
-        mvp.stagingBuffer.reset(new Buffer(bufferSize,
-                                           vk::BufferUsageFlagBits::eTransferSrc,
-                                           vk::MemoryPropertyFlagBits::eHostCoherent |
-                                           vk::MemoryPropertyFlagBits::eHostVisible));
+        mvp.stagingBuffer = std::make_shared<Buffer>(bufferSize,
+                                                     vk::BufferUsageFlagBits::eTransferSrc,
+                                                     vk::MemoryPropertyFlagBits::eHostCoherent |
+                                                     vk::MemoryPropertyFlagBits::eHostVisible);
 
-        mvp.deviceBuffer.reset(new Buffer(bufferSize,
-                                          vk::BufferUsageFlagBits::eUniformBuffer |
-                                          vk::BufferUsageFlagBits::eTransferDst,
-                                          vk::MemoryPropertyFlagBits::eDeviceLocal));
+        mvp.deviceBuffer = std::make_shared<Buffer>(bufferSize,
+                                                    vk::BufferUsageFlagBits::eUniformBuffer |
+                                                    vk::BufferUsageFlagBits::eTransferDst,
+                                                    vk::MemoryPropertyFlagBits::eDeviceLocal);
         updateUniform();
         //descriptor
         setupDescriptors();
@@ -181,33 +183,38 @@ namespace schoo {
 
     void ShadowMapPass::setupDescriptors() {
         //pool
+        auto &skins = AssetManager::Instance().glTFModel.skins;
         vk::DescriptorPoolCreateInfo createInfo;
-        std::array<vk::DescriptorPoolSize, 1> poolSizes;
-        poolSizes[0].setType(vk::DescriptorType::eUniformBuffer)
-                .setDescriptorCount(3);
-        createInfo.setMaxSets(3)
+        std::array poolSizes = {
+                vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 3),
+                vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 2 + skins.size())
+        };
+        createInfo.setMaxSets(3 + skins.size())
                 .setPoolSizes(poolSizes);
         descriptorPool = Context::GetInstance().device.createDescriptorPool(createInfo);
 
         //setLayout
+        //depthMVP
         vk::DescriptorSetLayoutCreateInfo createInfoModel;
-        std::array<vk::DescriptorSetLayoutBinding, 1> bindings;
-        bindings[0].setBinding(0)
-                .setDescriptorType(vk::DescriptorType::eUniformBuffer)
-                .setStageFlags(vk::ShaderStageFlagBits::eVertex)
-                .setDescriptorCount(1);
+        std::array bindings = {
+                createDSLayoutBinding(0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 1),
+        };
         createInfoModel.setBindings(bindings);
         setLayout = Context::GetInstance().device.createDescriptorSetLayout(createInfoModel);
-
-
+        //jointMatrices
+        vk::DescriptorSetLayoutCreateInfo jointSLInfo;
+        std::array jointSLBindings = {
+                createDSLayoutBinding(0, vk::DescriptorType::eStorageBuffer, vk::ShaderStageFlagBits::eVertex, 1)
+        };
+        jointSLInfo.setBindings(jointSLBindings);
+        jointSetLayout = Context::GetInstance().device.createDescriptorSetLayout(jointSLInfo);
 
         //allocateSets
-        std::vector<vk::DescriptorSetLayout> setLayouts(1, setLayout);
-        vk::DescriptorSetAllocateInfo allocateInfo;
-        allocateInfo.setSetLayouts(setLayouts)
-                .setDescriptorPool(descriptorPool)
-                .setDescriptorSetCount(1);
-        writerDescriptorSet = Context::GetInstance().device.allocateDescriptorSets(allocateInfo)[0];
+        writerDescriptorSet = allocateDescriptor(setLayout, descriptorPool, 1)[0];
+
+        for (auto &skin: skins) {
+            skin.descriptorSet = allocateDescriptor(jointSetLayout, descriptorPool, 1)[0];
+        }
 
         //updateSets
         vk::DescriptorBufferInfo bufferInfo;
@@ -223,6 +230,22 @@ namespace schoo {
                 .setDstSet(writerDescriptorSet)
                 .setDstArrayElement(0);
         Context::GetInstance().device.updateDescriptorSets(writers, {});
+
+        std::array<vk::WriteDescriptorSet, 1> jointWriter;
+        for (auto &skin: skins) {
+            vk::DescriptorBufferInfo jointBufferInfo;
+            jointBufferInfo.setOffset(0)
+                    .setBuffer(skin.jointMatricesBuffer->buffer)
+                    .setRange(skin.jointMatricesBuffer->size);
+
+            jointWriter[0].setDescriptorCount(1)
+                    .setDescriptorType(vk::DescriptorType::eStorageBuffer)
+                    .setBufferInfo(jointBufferInfo)
+                    .setDstBinding(0)
+                    .setDstSet(skin.descriptorSet)
+                    .setDstArrayElement(0);
+            Context::GetInstance().device.updateDescriptorSets(jointWriter, {});
+        }
     }
 
     void ShadowMapPass::updateUniform() {
@@ -231,22 +254,17 @@ namespace schoo {
         glm::mat4 depthProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.f);
         depthProjection[1][1] *= -1;
         glm::mat4 depthView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0, 1, 0));
-        uboData.depthMVP = depthProjection * depthView ;
+        uboData.depthMVP = depthProjection * depthView;
 
-        updateUniformBuffer();
-    }
+        loadDataHostToDevice(mvp.stagingBuffer, mvp.deviceBuffer, &uboData);
 
-    void ShadowMapPass::updateUniformBuffer() {
-        void *data = Context::GetInstance().device.mapMemory(mvp.stagingBuffer->memory, 0,
-                                                             mvp.stagingBuffer->size);
-        memcpy(data, &uboData, mvp.stagingBuffer->size);
-        Context::GetInstance().device.unmapMemory(mvp.stagingBuffer->memory);
-        copyBuffer(mvp.stagingBuffer->buffer, mvp.deviceBuffer->buffer, mvp.stagingBuffer->size, 0, 0);
     }
 
     void ShadowMapPass::setupPipeline() {
         //layout
-        std::array<vk::DescriptorSetLayout, 1> setLayouts = {setLayout};
+        vk::DescriptorSetLayoutCreateInfo emptyLayoutInfo;
+        emptyLayout = Context::GetInstance().device.createDescriptorSetLayout(emptyLayoutInfo);
+        std::array<vk::DescriptorSetLayout, 3> setLayouts = {setLayout,emptyLayout,jointSetLayout};
 
         vk::PushConstantRange pushConstantRange;
         pushConstantRange.setStageFlags(vk::ShaderStageFlagBits::eVertex)
@@ -274,7 +292,7 @@ namespace schoo {
         createInfo.setPInputAssemblyState(&inputAssemblyState);
 
         //Shader
-        auto stages= Context::GetInstance().renderer->shaders.shadow_map_shader->getStages();
+        auto stages = Context::GetInstance().renderer->shaders.shadow_map_shader->getStages();
         createInfo.setStages(stages[0]);
 
         //viewport
