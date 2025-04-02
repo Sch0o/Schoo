@@ -7,6 +7,7 @@
 #include "function/render/vertexData.hpp"
 #include"function/render/vulkan/buffer.hpp"
 
+
 #include "external/tinygltf/tiny_gltf.h"
 
 namespace schoo {
@@ -34,7 +35,7 @@ namespace schoo {
             int32_t skin = -1;     //store the index of th skin
             glm::mat4 matrix;
 
-            glm::mat4 getLocalMatrix() const ;
+            glm::mat4 getLocalMatrix() const;
 
             ~Node() {
                 for (auto &child: children) {
@@ -77,6 +78,8 @@ namespace schoo {
         struct Material {
             glm::vec4 baseColorFactor = glm::vec4(1.0f);
             uint32_t baseColorTextureIndex;
+            uint32_t normalTextureIndex;
+            
         };
         struct Image {
             std::shared_ptr<Texture> texture;
@@ -86,10 +89,9 @@ namespace schoo {
             int32_t imageIndex;
         };
 
-        struct PushConstantBlock {
-            glm::mat4 model;
-            int hasSkin;
-        };
+
+        std::string folderPath;
+        std::string name;
 
         std::shared_ptr<Buffer> vertexBuffer;
         std::shared_ptr<Buffer> indexBuffer;
@@ -98,7 +100,7 @@ namespace schoo {
         std::vector<Material> materials;
         std::vector<Node *> nodes;
         std::vector<Skin> skins;
-        std::vector<Animation>animations;
+        std::vector<Animation> animations;
 
         ~GLTFModel();
 
@@ -116,7 +118,7 @@ namespace schoo {
 
         void loadNodes(tinygltf::Model &input);
 
-        void loadNode(const tinygltf::Node &inputNode,uint32_t index,const tinygltf::Model &input, Node *parent,
+        void loadNode(const tinygltf::Node &inputNode, uint32_t index, const tinygltf::Model &input, Node *parent,
                       std::vector<uint32_t> &indices, std::vector<Vertex> &vertices);
 
         void draw(vk::CommandBuffer commandBuffer, vk::PipelineLayout pipelineLayout, int passStage);
@@ -125,13 +127,13 @@ namespace schoo {
 
         void createBuffers(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices);
 
-        static glm::mat4 getNodeGlobalTransformMatrix(Node*node);
+        static glm::mat4 getNodeGlobalTransformMatrix(Node *node);
 
         void updateJoints(Node *node);
 
-        Node*nodeFromIndex(uint32_t index);
+        Node *nodeFromIndex(uint32_t index);
 
-        Node*findNode(Node*parent,uint32_t index);
+        Node *findNode(Node *parent, uint32_t index);
 
         void Init(tinygltf::Model &input);
     };

@@ -3,6 +3,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <memory>
+#include<filesystem>
 
 
 namespace schoo {
@@ -223,11 +224,21 @@ namespace schoo {
     }
 
     void GLTFModel::loadImages(tinygltf::Model &input) {
-        // Images can be stored inside the glTF (which is the case for the sample model), so instead of directly
-        // loading them from disk, we fetch them from the glTF loader and upload the buffers
+        std::cout<<"---loading images---"<<std::endl;
         images.resize(input.images.size());
+
         for (size_t i = 0; i < input.images.size(); i++) {
             tinygltf::Image &glTFImage = input.images[i];
+
+            if(!glTFImage.uri.empty()){
+                namespace fs = std::filesystem;
+                fs::path fp(folderPath);
+                fs::path fn(glTFImage.uri);
+                std::cout<<(fp/fn).string()<<std::endl;
+                images[i].texture=std::make_shared<Texture>((fp/fn).string());
+                continue;
+            }
+
             // Get the image data from the glTF loader
             unsigned char *buffer = nullptr;
             VkDeviceSize bufferSize = 0;
@@ -256,6 +267,7 @@ namespace schoo {
             }
 
         }
+        std::cout<<"---images load complete---"<<std::endl;
     }
 
     void GLTFModel::loadMaterials(tinygltf::Model &input) {

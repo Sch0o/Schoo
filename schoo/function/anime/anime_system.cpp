@@ -8,8 +8,8 @@ namespace schoo {
     void AnimationSystem::updateAnimation(float deltaTime) {
         auto &model = AssetManager::Instance().glTFModel;
         auto &animations = model.animations;
-        if(animations.empty()){
-            std::cout<<"No animation"<<std::endl;
+        if (animations.empty()) {
+            std::cout << "No animation" << std::endl;
             return;
         }
         if (activeAnimation > animations.size() - 1) {
@@ -18,9 +18,9 @@ namespace schoo {
         }
         auto &animation = animations[activeAnimation];
 
-        if(!isShowAnimationName){
-            std::cout<<animation.name<<std::endl;
-            isShowAnimationName= true;
+        if (!isShowAnimationName) {
+            std::cout << "Animation Now playing: " + animation.name << std::endl;
+            isShowAnimationName = true;
         }
 
 
@@ -33,7 +33,7 @@ namespace schoo {
             auto &sampler = animation.samplers[channel.samplerIndex];
             for (int i = 0; i < sampler.inputs.size() - 1; i++) {
                 if ((animation.currentTime >= sampler.inputs[i]) && (animation.currentTime <= sampler.inputs[i + 1])) {
-                    if(sampler.interpolation=="LINEAR") {
+                    if (sampler.interpolation == "LINEAR") {
                         float interpolation = (animation.currentTime - sampler.inputs[i]) /
                                               (sampler.inputs[i + 1] - sampler.inputs[i]);
                         const auto &output1 = sampler.outputsVec4[i];

@@ -13,8 +13,8 @@ namespace schoo{
 
         void AddAsset(std::string name,std::string path);
 
-        void loadGLTFFile(std::string filename);
-        void loadObjFile(std::string filename);
+        void loadGLTFFile(std::string filePath);
+        void loadObjFile(std::string filePath);
 
         static void Init();
         static void Quit();

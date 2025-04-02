@@ -1,4 +1,5 @@
 #include"asset_manager.hpp"
+#include"filesystem"
 #include<iostream>
 
 
@@ -11,16 +12,19 @@ namespace schoo {
         return *instance_;
     }
 
-    void AssetManager::loadObjFile(std::string filename) {
+    void AssetManager::loadObjFile(std::string filePath) {
 
     }
 
-    void AssetManager::loadGLTFFile(std::string filename) {
+    void AssetManager::loadGLTFFile(std::string filePath) {
         tinygltf::Model glTFInput;
         tinygltf::TinyGLTF gltfContext;
         std::string error, warning;
 
-        bool fileLoaded = gltfContext.LoadASCIIFromFile(&glTFInput, &error, &warning, filename);
+        namespace fs=std::filesystem;
+        fs::path path(filePath);
+
+        bool fileLoaded = gltfContext.LoadASCIIFromFile(&glTFInput, &error, &warning, path.string());
 
         if(!warning.empty()){
             std::cout << "load glTF warning: "+warning << std::endl;
@@ -30,6 +34,10 @@ namespace schoo {
         }
 
         if (fileLoaded) {
+            glTFModel.folderPath=path.parent_path().string();
+            glTFModel.name=path.filename().string();
+            std::cout<<"glTFModel folderPath: "+glTFModel.folderPath<<std::endl;
+            std::cout<<"glTFModel name: "+glTFModel.name<<std::endl;
             glTFModel.Init(glTFInput);
         } else {
             throw std::runtime_error("open gltf failed");
