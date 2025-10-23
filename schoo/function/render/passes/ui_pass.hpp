@@ -25,7 +25,11 @@ namespace schoo {
 
         void createFrameBuffers();
 
-        void drawWindows();
+        static void drawWindows();
+
+        static void drawFPS();
+
+        static void drawObjectTree();
 
         void createRenderPass() ;
 

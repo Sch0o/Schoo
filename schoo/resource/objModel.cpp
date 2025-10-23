@@ -123,15 +123,15 @@ namespace schoo {
     }
 
 
-    void Model::loadDataHostToDevice(const std::shared_ptr<Buffer> &hostBuffer, const std::shared_ptr<Buffer> &DeviceBuffer,
-                                const void *src) {
-        void *data = Context::GetInstance().device.mapMemory(hostBuffer->memory, 0, hostBuffer->size);
-        memcpy(data, src, hostBuffer->size);
-        Context::GetInstance().device.unmapMemory(hostBuffer->memory);
-
-        copyBuffer(hostBuffer->buffer, DeviceBuffer->buffer, hostBuffer->size, 0, 0);
-
-    }
+//    void Model::loadDataHostToDevice(const std::shared_ptr<Buffer> &hostBuffer, const std::shared_ptr<Buffer> &DeviceBuffer,
+//                                const void *src) {
+//        void *data = Context::GetInstance().device.mapMemory(hostBuffer->memory, 0, hostBuffer->size);
+//        memcpy(data, src, hostBuffer->size);
+//        Context::GetInstance().device.unmapMemory(hostBuffer->memory);
+//
+//        copyBuffer(hostBuffer->buffer, DeviceBuffer->buffer, hostBuffer->size, 0, 0);
+//
+//    }
 
 
 }

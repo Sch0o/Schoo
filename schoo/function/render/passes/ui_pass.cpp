@@ -137,29 +137,68 @@ namespace schoo {
         ImGui::UpdatePlatformWindows();
     }
 
-    void UIPass::drawWindows() {
-        bool showMainWindow= true;
-        glm::vec3 &light_pos=Context::GetInstance().renderer->lights.plight.position;
-        static float light_pos_f[3]={light_pos.x,light_pos.y,light_pos.z};
+    void UIPass::drawFPS() {
+        bool showMainWindow = true;
+        glm::vec3 &light_pos = Context::GetInstance().renderer->lights.plight.position;
+        static float light_pos_f[3] = {light_pos.x, light_pos.y, light_pos.z};
 
 
         ImGuiIO &io = ImGui::GetIO();
 
-//        ImGui::SetNextWindowPos(ImVec2(301, 150));
         ImGui::SetNextWindowSize(ImVec2(300, 200));
         ImGui::Begin("Control menu ", &showMainWindow);
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
         ImGui::BeginChild("light position");
         ImGui::Text("light position");
-        ImGui::InputFloat3("",light_pos_f);
+        ImGui::InputFloat3("", light_pos_f);
         ImGui::EndChild();
         ImGui::End();
         ImGui::Render();
 
-        if(light_pos.y!=light_pos_f[1]){
-            std::cout<<light_pos.y<<std::endl;
+        if (light_pos.y != light_pos_f[1]) {
+            std::cout << light_pos.y << std::endl;
         }
-        light_pos={light_pos_f[0],light_pos_f[1],light_pos_f[2]};
+        light_pos = {light_pos_f[0], light_pos_f[1], light_pos_f[2]};
+    }
+
+    void UIPass::drawWindows() {
+        bool showMainWindow = true;
+
+        ImGuiIO &io = ImGui::GetIO();
+
+        ImGui::SetNextWindowSize(ImVec2(300, 200));
+        ImGui::Begin("scene", &showMainWindow);
+
+        ImGui::End();
+        ImGui::Render();
+
+    }
+
+    void UIPass::drawObjectTree() {
+        if(ImGui::TreeNode("Objects")){
+            for (int i = 0; i < 5; i++)
+            {
+                // Use SetNextItemOpen() so set the default state of a node to be open. We could
+                // also use TreeNodeEx() with the ImGuiTreeNodeFlags_DefaultOpen flag to achieve the same thing!
+                if (i == 0)
+                    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+
+                // Here we use PushID() to generate a unique base ID, and then the "" used as TreeNode id won't conflict.
+                // An alternative to using 'PushID() + TreeNode("", ...)' to generate a unique ID is to use 'TreeNode((void*)(intptr_t)i, ...)',
+                // aka generate a dummy pointer-sized value to be hashed. The demo below uses that technique. Both are fine.
+                ImGui::PushID(i);
+                if (ImGui::TreeNode("", "Child %d", i))
+                {
+                    ImGui::Text("blah blah");
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton("button")) {}
+                    ImGui::TreePop();
+                }
+                ImGui::PopID();
+            }
+            ImGui::TreePop();
+        }
+
     }
 
     void UIPass::initImGui() {

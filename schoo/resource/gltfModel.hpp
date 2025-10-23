@@ -131,9 +131,9 @@ namespace schoo {
 
         void updateJoints(Node *node);
 
-        Node *nodeFromIndex(uint32_t index);
+        Node * nodeFromIndex(uint32_t index);
 
-        Node *findNode(Node *parent, uint32_t index);
+        Node * findNode(Node *parent, uint32_t index);
 
         void Init(tinygltf::Model &input);
     };
