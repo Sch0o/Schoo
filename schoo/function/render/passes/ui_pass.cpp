@@ -169,12 +169,15 @@ namespace schoo {
         ImGui::SetNextWindowSize(ImVec2(300, 200));
         ImGui::Begin("scene", &showMainWindow);
 
+        drawObjectTree();
+
         ImGui::End();
         ImGui::Render();
 
     }
 
     void UIPass::drawObjectTree() {
+        ImGui::SetNextItemOpen(true,ImGuiCond_Once);
         if(ImGui::TreeNode("Objects")){
             for (int i = 0; i < 5; i++)
             {

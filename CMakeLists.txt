@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.28)
 project(Schoo LANGUAGES CXX DESCRIPTION "a 3D Renderer made by schoo")
 
+message(STATUS "${PROJECT_SOURCE_DIR}")
+message(STATUS "${PROJECT_BINARY_DIR}")
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 set(IMGUI_DIR "${PROJECT_SOURCE_DIR}/external/imgui")

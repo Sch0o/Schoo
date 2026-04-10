@@ -16,7 +16,6 @@ namespace schoo {
         sampler = createSampler();
         setupDescriptors();
         setupPipeline();
-
     }
 
     FxaaPass::~FxaaPass(){

@@ -12,6 +12,7 @@ namespace schoo {
     void Window::Init(uint32_t width, uint32_t height, const char *title) {
         instance_.reset(new Window(width, height, title));
     }
+
     void Window::Quit() {
         instance_.reset();
     }
@@ -35,8 +36,8 @@ namespace schoo {
         glfwSetCursorPosCallback(glfwWindow, mouse_move_callback);
         glfwSetKeyCallback(glfwWindow, key_press_callback);
 
-        glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        glfwSetCursorPos(glfwWindow,600,400);
+        glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        glfwSetCursorPos(glfwWindow, 600, 400);
     }
 
     Window::~Window() {
@@ -85,7 +86,9 @@ namespace schoo {
         lastX = xPos;
         lastY = yPos;
 
-        camera->ProcessMouseMovement(deltaX, deltaY);
+        int mouseStateRight = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
+        if (mouseStateRight == GLFW_PRESS)
+            camera->ProcessMouseMovement(deltaX, deltaY);
     }
 
     void Window::key_press_callback(GLFWwindow *window, int key, int scancode, int action, int mode) {
